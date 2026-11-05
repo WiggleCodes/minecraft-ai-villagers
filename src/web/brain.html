@@ -1,0 +1,1162 @@
+<!doctype html>
+<!-- Wiggly's Minecraft AI Villagers - (c) 2026 WiggleCodes (https://github.com/WiggleCodes). Licensed under PolyForm Noncommercial 1.0.0. See LICENSE. -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Villager brain</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --sky-top: #120d2b;
+    --sky-bottom: #1d0f33;
+    --moon: #ece6ff;
+    --moon-dim: #a59bd0;
+    --mint: #7ef0b0;
+    --ember: #ff8a6a;
+    --glass: rgba(26, 17, 58, 0.72);
+    --edge: rgba(190, 170, 255, 0.16);
+    --hue: #8fd8ff;
+    --name: 'Bricolage Grotesque', ui-sans-serif, system-ui, sans-serif;
+    --body: 'Atkinson Hyperlegible', ui-sans-serif, system-ui, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; }
+  body {
+    background: radial-gradient(90% 80% at 50% 45%, #2a1958 0%, var(--sky-top) 55%, var(--sky-bottom) 100%);
+    background-color: var(--sky-top);
+    color: var(--moon); font: 14.5px/1.5 var(--body); overflow: hidden;
+    -webkit-font-smoothing: antialiased;
+  }
+  #scene { position: fixed; inset: 0; display: block; width: 100%; height: 100%; touch-action: none; }
+
+  /* ---------- top bar ---------- */
+  header {
+    position: fixed; z-index: 5; top: 0; left: 0; right: 0;
+    display: flex; align-items: center; gap: 18px; flex-wrap: wrap; padding: 14px 20px;
+    pointer-events: none;
+  }
+  header > * { pointer-events: auto; }
+  a.back, button, select {
+    font: 700 13px/1 var(--body); color: var(--moon); text-decoration: none;
+    background: var(--glass); border: 1px solid var(--edge); border-radius: 999px; padding: 9px 14px;
+    cursor: pointer; backdrop-filter: blur(10px);
+  }
+  select { appearance: none; padding-right: 30px; background-image: linear-gradient(45deg, transparent 50%, var(--moon-dim) 50%), linear-gradient(135deg, var(--moon-dim) 50%, transparent 50%); background-position: calc(100% - 16px) 52%, calc(100% - 11px) 52%; background-size: 5px 5px; background-repeat: no-repeat; }
+  select option { background: #1d1440; }
+  a.back:hover, button:hover, select:hover { border-color: rgba(220, 205, 255, 0.45); }
+  :focus-visible { outline: 2px solid #ffd36e; outline-offset: 3px; }
+  .who h1 { margin: 0; font: 700 30px/1 var(--name); letter-spacing: -0.02em; color: var(--hue); text-shadow: 0 0 24px color-mix(in srgb, var(--hue) 55%, transparent); }
+  .who p { margin: 4px 0 0; color: var(--moon-dim); font-size: 13px; }
+  .vitals { display: flex; gap: 14px; align-items: center; font-size: 12.5px; color: var(--moon-dim); }
+  .vital { display: flex; align-items: center; gap: 6px; }
+  .vital .bar { width: 70px; height: 5px; border-radius: 3px; background: rgba(255, 255, 255, 0.1); overflow: hidden; }
+  .vital .bar i { display: block; height: 100%; border-radius: 3px; transition: width 0.8s ease; }
+  .status { display: inline-flex; align-items: center; gap: 7px; font-size: 12.5px; color: var(--moon-dim); }
+  .status .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--moon-dim); }
+  .status.live .dot { background: var(--mint); box-shadow: 0 0 10px var(--mint); }
+  .status.demo .dot { background: #ffd36e; box-shadow: 0 0 10px #ffd36e; }
+  .spacer { flex: 1; }
+
+  /* ---------- side panels ---------- */
+  .panel {
+    position: fixed; z-index: 4; top: 86px; bottom: 150px; width: 330px;
+    background: var(--glass); border: 1px solid var(--edge); border-radius: 18px;
+    backdrop-filter: blur(14px); display: flex; flex-direction: column; overflow: hidden;
+  }
+  #process { left: 20px; }
+  #regions { right: 20px; }
+  .panel h2 { margin: 0; padding: 16px 18px 4px; font: 700 17px/1.2 var(--name); }
+  .panel .sub { margin: 0; padding: 0 18px 10px; color: var(--moon-dim); font-size: 12.5px; }
+  .scroll { overflow-y: auto; padding: 4px 18px 18px; flex: 1; scrollbar-width: thin; scrollbar-color: rgba(190,170,255,.25) transparent; }
+
+  /* the thought trace */
+  .cycle { padding: 10px 0 6px; border-top: 1px solid var(--edge); }
+  .cycle:first-child { border-top: 0; }
+  .cycle-head { display: flex; justify-content: space-between; color: var(--moon-dim); font-size: 12px; margin-bottom: 6px; }
+  .cycle.current .cycle-head b { color: var(--moon); }
+  .stage { position: relative; padding: 3px 0 7px 22px; }
+  .stage::before {
+    content: ''; position: absolute; left: 4px; top: 8px; width: 8px; height: 8px; border-radius: 50%;
+    background: var(--c); box-shadow: 0 0 10px var(--c);
+  }
+  .stage::after { content: ''; position: absolute; left: 7.5px; top: 20px; bottom: -2px; width: 1px; background: var(--edge); }
+  .stage:last-child::after { display: none; }
+  .stage .k { font-weight: 700; font-size: 13px; color: var(--c); }
+  .stage .v { font-size: 13px; color: var(--moon); overflow-wrap: anywhere; }
+  .stage .v.dim, .stage .m { color: var(--moon-dim); }
+  .stage .m { font-size: 11.5px; }
+  .stage.fail .k { color: var(--ember); }
+  .stage.new { animation: arrive 0.5s ease both; }
+  @keyframes arrive { from { opacity: 0; transform: translateX(-6px); } }
+  .tool { display: inline-block; padding: 1px 8px; border-radius: 999px; background: rgba(255,255,255,0.08); border: 1px solid var(--edge); font-size: 12px; margin: 2px 4px 0 0; }
+  .empty { color: var(--moon-dim); padding: 8px 0; }
+
+  /* regions list */
+  .region-row {
+    display: grid; grid-template-columns: 12px 1fr 52px; gap: 10px; align-items: center;
+    width: 100%; text-align: left; padding: 8px 10px; margin: 0 0 2px; border-radius: 12px;
+    background: transparent; border: 1px solid transparent; backdrop-filter: none;
+    font: 400 13px/1.3 var(--body);
+  }
+  .region-row:hover { background: rgba(255, 255, 255, 0.05); border-color: transparent; }
+  .region-row[aria-pressed="true"] { background: rgba(255, 255, 255, 0.08); border-color: var(--edge); }
+  .region-row .sw { width: 12px; height: 12px; border-radius: 50%; background: var(--c); box-shadow: 0 0 10px var(--c); }
+  .region-row b { display: block; font-size: 13.5px; }
+  .region-row span.f { color: var(--moon-dim); font-size: 12px; }
+  .meter { height: 5px; border-radius: 3px; background: rgba(255,255,255,0.08); overflow: hidden; }
+  .meter i { display: block; height: 100%; width: 0; background: var(--c); border-radius: 3px; box-shadow: 0 0 8px var(--c); }
+  #region-detail { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--edge); }
+  #region-detail h3 { margin: 0 0 4px; font: 700 16px/1.2 var(--name); color: var(--c); }
+  #region-detail p { margin: 0 0 8px; }
+  #region-detail ul { margin: 0; padding-left: 16px; color: var(--moon-dim); font-size: 12.5px; }
+  #region-detail li { margin: 2px 0; }
+
+  /* ---------- the current thought ---------- */
+  #thought {
+    position: fixed; z-index: 3; left: 50%; bottom: 26px; transform: translateX(-50%);
+    width: min(720px, calc(100vw - 740px)); min-width: 320px; text-align: center; pointer-events: none;
+  }
+  #thought .lbl { font-size: 12.5px; color: var(--moon-dim); margin: 0 0 6px; min-height: 1.2em; }
+  #thought .txt { margin: 0; font: 500 21px/1.35 var(--name); text-wrap: balance; transition: opacity 0.6s ease; text-shadow: 0 2px 18px rgba(18,13,43,.9); }
+  #thought .txt.fade { opacity: 0; }
+
+  /* floating region labels */
+  #tags { position: fixed; inset: 0; z-index: 2; pointer-events: none; }
+  .tag {
+    position: absolute; left: 0; top: 0; transform: translate(-50%, -50%); white-space: nowrap;
+    font: 700 12.5px/1 var(--body); color: var(--c); padding: 5px 9px; border-radius: 999px;
+    background: rgba(18, 13, 43, 0.72); border: 1px solid color-mix(in srgb, var(--c) 45%, transparent);
+    transition: opacity 0.4s ease; opacity: 0;
+  }
+  .tag.on { opacity: 1; }
+  .hint { position: fixed; z-index: 3; right: 20px; bottom: 20px; color: var(--moon-dim); font-size: 12px; text-align: right; }
+
+  @media (max-width: 1180px) {
+    .panel { width: 290px; }
+    #thought { width: calc(100vw - 660px); min-width: 260px; }
+  }
+  /* Phones and small tablets: brain on top, panels underneath, page scrolls */
+  @media (max-width: 900px) {
+    body { overflow: auto; display: flex; flex-direction: column; padding-top: 62vh; height: auto; min-height: 100%; }
+    body > * { flex-shrink: 0; }
+    #thought { order: 1; } #process { order: 2; } #regions { order: 3; }
+    header { padding: 12px 14px; gap: 8px 12px; }
+    header .spacer { display: none; }
+    #pick { order: 4; }
+    #scene { position: absolute; height: 62vh; }
+    header { position: absolute; }
+    .who h1 { font-size: 24px; }
+    .vitals { width: 100%; order: 5; flex-wrap: wrap; gap: 6px 14px; }
+    .vitals .status { width: 100%; }
+    #tags { position: absolute; height: 62vh; }
+    #thought { position: relative; left: auto; bottom: auto; transform: none; width: auto; min-width: 0; margin: 4px 16px 0; }
+    #thought .txt { font-size: 17px; }
+    .panel { position: relative; top: auto; bottom: auto; left: auto !important; right: auto !important; width: auto; margin: 14px 16px; max-height: none; }
+    .scroll { max-height: 420px; flex: none; }
+    .hint { display: none; }
+  }
+  @media (prefers-reduced-motion: reduce) { .stage.new { animation: none; } }
+</style>
+<script type="importmap">
+  { "imports": { "three": "./vendor/three.module.js", "three/addons/OrbitControls.js": "./vendor/OrbitControls.js" } }
+</script>
+</head>
+<body>
+<canvas id="scene" aria-label="3D model of the villager's brain. Drag to rotate, scroll to zoom, click a region for details."></canvas>
+<div id="tags"></div>
+
+<header>
+  <a class="back" id="back" href="./">Back to the village</a>
+  <div class="who"><h1 id="name">Brain</h1><p id="role">Connecting…</p></div>
+  <div class="vitals">
+    <div class="vital" title="Health">Health <span class="bar"><i id="hp" style="background:#ff7a9c"></i></span></div>
+    <div class="vital" title="Food">Food <span class="bar"><i id="food" style="background:#ffc46e"></i></span></div>
+    <div class="status" id="status" role="status"><span class="dot"></span><span id="status-text">Connecting…</span></div>
+  </div>
+  <div class="spacer"></div>
+  <label class="sr" for="pick" style="position:absolute;left:-9999px">Choose a villager</label>
+  <select id="pick" title="Look inside another villager's brain"></select>
+</header>
+
+<section class="panel" id="process" aria-labelledby="process-h">
+  <h2 id="process-h">How it's thinking</h2>
+  <p class="sub">Each thought, step by step: what it senses, what it decides and what happens.</p>
+  <div class="scroll" id="trace" aria-live="polite"><p class="empty">Waiting for the next thought…</p></div>
+</section>
+
+<section class="panel" id="regions" aria-labelledby="regions-h">
+  <h2 id="regions-h">Brain regions</h2>
+  <p class="sub">Regions light up as they work. Choose one to see what it does.</p>
+  <div class="scroll"><div id="region-list"></div><div id="region-detail" hidden></div></div>
+</section>
+
+<div id="thought"><p class="lbl" id="thought-lbl"></p><p class="txt" id="thought-txt"></p></div>
+<p class="hint">Drag to turn the brain, scroll to zoom, click a region</p>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/OrbitControls.js';
+
+// =====================================================================================
+// Regions: real brain anatomy, mapped onto what a villager actually does
+// =====================================================================================
+const REGIONS = [
+  { key: 'prefrontal', name: 'Prefrontal cortex', fn: 'Planning and reasoning', color: '#ffd36e',
+    about: 'Where the villager reasons. It lights up while the AI model is thinking, choosing goals and deciding which action to take next.' },
+  { key: 'motor', name: 'Motor cortex', fn: 'Starting actions', color: '#ff9461',
+    about: 'Turns a decision into a movement: mining, placing, crafting and fighting all start here.' },
+  { key: 'parietal', name: 'Parietal lobe', fn: 'Sense of space', color: '#6ad6ff',
+    about: 'Knows where things are. Used for walking somewhere, exploring, following and finding the way home.' },
+  { key: 'occipital', name: 'Occipital lobe', fn: 'Vision', color: '#8794ff',
+    about: 'Takes in what the villager can see around it: blocks, mobs, players and items, at the start of every thought.' },
+  { key: 'temporal', name: 'Temporal lobe', fn: 'Hearing and recognising', color: '#c48bff',
+    about: 'Hears chat from players and other villagers and recognises who is speaking.' },
+  { key: 'broca', name: "Broca's area", fn: 'Speaking', color: '#ff6fb5',
+    about: 'Forms what the villager says in chat, whispers and pins to the notice board.' },
+  { key: 'wernicke', name: "Wernicke's area", fn: 'Understanding words', color: '#ffa3dc',
+    about: 'Makes sense of what was said, including jobs you give it with @Name.' },
+  { key: 'hippocampus', name: 'Hippocampus', fn: 'Memory', color: '#5ff2c4',
+    about: "Stores and recalls the villager's notes: where resources are, where home is, agreements with others." },
+  { key: 'amygdala', name: 'Amygdala', fn: 'Fear and alertness', color: '#ff4d6d',
+    about: 'Reacts to danger: getting hurt, hostile mobs nearby, fights and dying.' },
+  { key: 'cerebellum', name: 'Cerebellum', fn: 'Skilled movement', color: '#9cf06b',
+    about: 'Coordinates the practised, physical work: pathfinding, mining blocks, building and crafting.' },
+  { key: 'brainstem', name: 'Brainstem', fn: 'Staying alive', color: '#f2e9ff',
+    about: 'Automatic survival reflexes that run without the AI model: eating when hungry, fleeing, sleeping.' },
+];
+const RI = Object.fromEntries(REGIONS.map((r, i) => [r.key, i]));
+
+const TOOL_ROUTE = {
+  observe: ['occipital'], find_block: ['occipital', 'parietal'],
+  go_to: ['parietal', 'cerebellum'], go_to_player: ['parietal', 'cerebellum'], follow: ['parietal', 'cerebellum'],
+  explore: ['parietal', 'cerebellum'], go_home: ['hippocampus', 'parietal', 'cerebellum'], set_home: ['parietal', 'hippocampus'],
+  collect_block: ['motor', 'cerebellum'], dig_block: ['motor', 'cerebellum'], place_block: ['motor', 'cerebellum'],
+  build_shelter: ['motor', 'cerebellum'], craft: ['motor', 'cerebellum'], smelt: ['motor', 'cerebellum'],
+  use_chest: ['motor', 'cerebellum'], equip: ['motor'], give_item: ['parietal', 'motor'], stop: ['motor'],
+  attack: ['amygdala', 'motor', 'cerebellum'], eat: ['brainstem'], sleep: ['brainstem'], wait: ['brainstem'],
+  chat: ['broca'], whisper: ['broca'], post_to_board: ['broca'],
+  remember: ['hippocampus'], forget_note: ['hippocampus'], set_goal: ['prefrontal'], complete_directive: ['prefrontal'],
+};
+const regionsOfTool = (t) => TOOL_ROUTE[t] ?? ['motor'];
+
+// =====================================================================================
+// Setup
+// =====================================================================================
+const params = new URLSearchParams(location.search);
+const TOKEN = params.get('token');
+let botName = params.get('bot') || '';
+const FORCE_DEMO = params.has('demo');
+const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const qs = (extra = {}) => {
+  const p = new URLSearchParams();
+  if (TOKEN) p.set('token', TOKEN);
+  if (FORCE_DEMO) p.set('demo', '');
+  for (const [k, v] of Object.entries(extra)) p.set(k, v);
+  const s = p.toString().replace(/=(&|$)/g, '$1');
+  return s ? `?${s}` : '';
+};
+document.getElementById('back').href = `./${qs()}`;
+const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const hash = (s) => { let h = 2166136261; for (const c of String(s)) { h ^= c.charCodeAt(0); h = Math.imul(h, 16777619); } return (h >>> 0) / 4294967295; };
+
+const canvas = document.getElementById('scene');
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false, powerPreference: 'high-performance' });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+const scene = new THREE.Scene();
+// The glow is additive, so the sky has to be painted inside the scene (not behind a transparent canvas).
+function skyTexture() {
+  const c = document.createElement('canvas');
+  c.width = 1024; c.height = 1024;
+  const g = c.getContext('2d');
+  const grad = g.createRadialGradient(512, 470, 0, 512, 512, 760);
+  grad.addColorStop(0, '#2c1a5c'); grad.addColorStop(0.5, '#160f33'); grad.addColorStop(1, '#100a24');
+  g.fillStyle = grad; g.fillRect(0, 0, 1024, 1024);
+  for (let i = 0; i < 260; i++) {
+    g.fillStyle = `rgba(230,220,255,${0.15 + Math.random() * 0.4})`;
+    g.beginPath(); g.arc(Math.random() * 1024, Math.random() * 1024, Math.random() * 1.1 + 0.2, 0, Math.PI * 2); g.fill();
+  }
+  const t = new THREE.CanvasTexture(c);
+  t.colorSpace = THREE.SRGBColorSpace;
+  return t;
+}
+scene.background = skyTexture();
+const camera = new THREE.PerspectiveCamera(38, 1, 0.05, 50);
+camera.position.set(-3.7, 1.2, 2.5);
+const controls = new OrbitControls(camera, canvas);
+controls.target.set(0, -0.15, -0.05);
+controls.enableDamping = true;
+controls.dampingFactor = 0.06;
+controls.minDistance = 1.6;
+controls.maxDistance = 7;
+controls.autoRotate = !reduceMotion;
+controls.autoRotateSpeed = 0.35;
+controls.enablePan = false;
+
+const brain = new THREE.Group();
+scene.add(brain);
+
+// Seeded random so every villager's brain has the same anatomy but its own neurons.
+let seed = 1;
+const rand = () => ((seed = (seed * 16807) % 2147483647) - 1) / 2147483646;
+const randDir = () => {
+  const u = rand() * 2 - 1, t = rand() * Math.PI * 2, s = Math.sqrt(1 - u * u);
+  return new THREE.Vector3(s * Math.cos(t), u, s * Math.sin(t));
+};
+const inEllipsoid = (p, c, r, k = 1) => ((p.x - c.x) / r.x) ** 2 + ((p.y - c.y) / r.y) ** 2 + ((p.z - c.z) / r.z) ** 2 < k * k;
+
+// =====================================================================================
+// Anatomy: build the brain as a cloud of neurons
+// =====================================================================================
+const HEMI_R = new THREE.Vector3(0.55, 0.74, 1.22);
+const TEMP_R = new THREE.Vector3(0.34, 0.3, 0.6);
+const CB_C = new THREE.Vector3(0, -0.56, -0.9), CB_R = new THREE.Vector3(0.6, 0.29, 0.36);
+const hemiC = (s) => new THREE.Vector3(s * 0.53, 0.12, 0);
+const tempC = (s) => new THREE.Vector3(s * 0.62, -0.33, 0.12);
+
+function folds(p) {
+  // ridged pattern that reads as gyri (ridges) and sulci (grooves)
+  const g = Math.sin(12 * p.z + 3 * Math.sin(5 * p.y) + 2 * Math.sin(7 * p.x)) + Math.sin(11 * p.y + 3 * Math.sin(6 * p.z) + 1.5 * Math.sin(9 * p.x));
+  return 1 - Math.min(1, Math.abs(g) / 1.4);
+}
+
+function cortexRegion(p, s, temporalLobe) {
+  const lateral = Math.abs(p.x) > 0.62;
+  if (temporalLobe) {
+    if (s < 0 && p.z < -0.05 && p.y > -0.42) return 'wernicke';
+    return 'temporal';
+  }
+  if (p.z > 0.48) return 'prefrontal';
+  if (s < 0 && lateral && p.z > 0.2 && p.y < 0.08 && p.y > -0.32) return 'broca';
+  if (p.z > 0.14 && p.y > -0.12) return 'motor';
+  if (s < 0 && lateral && p.z > -0.62 && p.z < -0.05 && p.y < 0.16 && p.y > -0.3) return 'wernicke';
+  if (p.z > -0.62 && p.y > -0.12) return 'parietal';
+  if (p.z <= -0.62) return 'occipital';
+  return 'temporal';
+}
+
+function buildBrain(name) {
+  seed = 1 + Math.floor(hash(name) * 1e6);
+  const pos = [], reg = [], sd = [], shell = [];
+  const push = (p, r, sh = 1) => { pos.push(p.x, p.y, p.z); reg.push(RI[r]); sd.push(rand()); shell.push(sh); };
+
+  // Cerebral hemispheres
+  for (const s of [-1, 1]) {
+    const c = hemiC(s);
+    let made = 0, guard = 0;
+    while (made < 12500 && guard++ < 120000) {
+      const d = randDir();
+      const k = 1 / Math.sqrt((d.x / HEMI_R.x) ** 2 + (d.y / HEMI_R.y) ** 2 + (d.z / HEMI_R.z) ** 2);
+      const p = c.clone().addScaledVector(d, k);
+      if (s * p.x < 0.035) p.x = s * (0.035 + rand() * 0.01); // medial wall with a gap between hemispheres
+      if (p.y < -0.3) p.y = -0.3 + (p.y + 0.3) * 0.45; // flatter underside
+      p.x *= 0.86 + 0.14 * Math.min(1, (1.3 - p.z) / 1.3); // a little narrower at the front
+      if (inEllipsoid(p, tempC(s), TEMP_R, 0.92)) continue;
+      const f = folds(p);
+      if (rand() > 0.12 + 0.88 * f * f) continue; // dense on gyri, sparse in sulci
+      const n = p.clone().sub(c).normalize();
+      const depth = rand() * rand() * 0.07;
+      p.addScaledVector(n, 0.035 * f - depth);
+      push(p, cortexRegion(p, s, false), 1 - depth / 0.07);
+      made++;
+    }
+    // Temporal lobes
+    const tc = tempC(s);
+    made = 0; guard = 0;
+    while (made < 2600 && guard++ < 60000) {
+      const d = randDir();
+      const k = 1 / Math.sqrt((d.x / TEMP_R.x) ** 2 + (d.y / TEMP_R.y) ** 2 + (d.z / TEMP_R.z) ** 2);
+      const p = tc.clone().addScaledVector(d, k);
+      if (inEllipsoid(p, c, HEMI_R, 0.97) || s * p.x < 0.25) continue;
+      const f = folds(p);
+      if (rand() > 0.3 + 0.7 * f) continue;
+      const depth = rand() * rand() * 0.06;
+      p.addScaledVector(d, 0.03 * f - depth);
+      push(p, cortexRegion(p, s, true), 1 - depth / 0.07);
+      made++;
+    }
+    // Hippocampus: a curved seahorse-shaped tube deep in the temporal lobe
+    for (let i = 0; i < 520; i++) {
+      const t = rand();
+      const axis = new THREE.Vector3(s * (0.36 - 0.06 * t), -0.32 + 0.16 * Math.sin(t * Math.PI * 0.9), 0.18 - 0.68 * t);
+      push(axis.add(randDir().multiplyScalar(0.045 * Math.cbrt(rand()))), 'hippocampus', 0.7);
+    }
+    // Amygdala: an almond just in front of it
+    for (let i = 0; i < 300; i++) {
+      push(new THREE.Vector3(s * 0.37, -0.36, 0.3).add(randDir().multiplyScalar(0.075 * Math.cbrt(rand()))), 'amygdala', 0.7);
+    }
+  }
+  // Cerebellum, with fine horizontal folia
+  let made = 0, guard = 0;
+  while (made < 2600 && guard++ < 40000) {
+    const d = randDir();
+    const k = 1 / Math.sqrt((d.x / CB_R.x) ** 2 + (d.y / CB_R.y) ** 2 + (d.z / CB_R.z) ** 2);
+    const p = CB_C.clone().addScaledVector(d, k);
+    if (inEllipsoid(p, hemiC(-1), HEMI_R, 0.98) || inEllipsoid(p, hemiC(1), HEMI_R, 0.98)) continue;
+    if (Math.abs(p.x) < 0.05 && p.z < -0.95) continue;
+    const stripe = Math.abs(Math.sin(p.y * 58 + p.z * 9));
+    if (rand() > 0.2 + 0.8 * stripe) continue;
+    p.addScaledVector(d, -rand() * 0.06);
+    push(p, 'cerebellum', 0.9);
+    made++;
+  }
+  // Brainstem
+  for (let i = 0; i < 900; i++) {
+    const t = rand();
+    const a = new THREE.Vector3(0, -0.3 - 1.0 * t, -0.42 - 0.2 * t);
+    const r = (0.15 - 0.05 * t) * Math.sqrt(rand());
+    const th = rand() * Math.PI * 2;
+    push(a.add(new THREE.Vector3(Math.cos(th) * r, 0, Math.sin(th) * r * 0.8)), 'brainstem', 0.8);
+  }
+  return { pos: new Float32Array(pos), reg: new Float32Array(reg), sd: new Float32Array(sd), shell: new Float32Array(shell) };
+}
+
+// =====================================================================================
+// Shaders
+// =====================================================================================
+const N_REG = REGIONS.length;
+const uniforms = {
+  uTime: { value: 0 },
+  uAct: { value: new Array(N_REG).fill(0) },
+  uCol: { value: REGIONS.map((r) => new THREE.Color(r.color)) },
+  uReveal: { value: 1 },
+  uFocus: { value: -1 },
+  uPixel: { value: 1 },
+  uSize: { value: 0.065 },
+};
+const neuronMat = new THREE.ShaderMaterial({
+  uniforms,
+  transparent: true, depthWrite: false, blending: THREE.AdditiveBlending,
+  vertexShader: `
+    attribute float aRegion; attribute float aSeed; attribute float aShell;
+    uniform float uTime, uReveal, uFocus, uPixel, uSize;
+    uniform float uAct[${N_REG}]; uniform vec3 uCol[${N_REG}];
+    varying vec3 vColor; varying float vAlpha;
+    void main() {
+      int r = int(aRegion + 0.5);
+      float act = uAct[r];
+      float flick = 0.5 + 0.5 * sin(uTime * (1.2 + aSeed * 3.0) + aSeed * 50.0);
+      float spark = step(0.985, fract(aSeed * 91.7 + uTime * (0.05 + act * 0.6)));
+      float vis = smoothstep(aSeed - 0.04, aSeed, uReveal);
+      float focus = (uFocus < -0.5 || abs(uFocus - aRegion) < 0.5) ? 1.0 : 0.16;
+      vColor = mix(vec3(0.56, 0.5, 0.92), uCol[r], 0.4 + 0.6 * min(1.0, act * 1.4 + 0.15));
+      vAlpha = (0.26 + 0.08 * flick + act * (0.75 + 0.5 * flick) + spark * (0.6 + act)) * focus * vis * (0.5 + 0.5 * aShell);
+      vec4 mv = modelViewMatrix * vec4(position, 1.0);
+      gl_PointSize = uSize * (1.0 + act * 0.9 + spark * 1.2) * uPixel / -mv.z * 100.0;
+      gl_Position = projectionMatrix * mv;
+    }`,
+  fragmentShader: `
+    varying vec3 vColor; varying float vAlpha;
+    void main() {
+      float d = length(gl_PointCoord - 0.5);
+      float a = smoothstep(0.5, 0.05, d);
+      gl_FragColor = vec4(vColor * vAlpha * a, 1.0);
+    }`,
+});
+const fiberMat = new THREE.ShaderMaterial({
+  uniforms,
+  transparent: true, depthWrite: false, blending: THREE.AdditiveBlending,
+  vertexShader: `
+    attribute float aRegion; attribute float aSeed;
+    uniform float uAct[${N_REG}]; uniform vec3 uCol[${N_REG}]; uniform float uReveal, uFocus;
+    varying vec3 vColor; varying float vAlpha;
+    void main() {
+      int r = int(aRegion + 0.5);
+      float act = uAct[r];
+      float focus = (uFocus < -0.5 || abs(uFocus - aRegion) < 0.5) ? 1.0 : 0.12;
+      vColor = mix(vec3(0.55, 0.5, 0.9), uCol[r], 0.55);
+      vAlpha = (0.05 + act * 0.4) * focus * step(aSeed, uReveal);
+      gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+    }`,
+  fragmentShader: `varying vec3 vColor; varying float vAlpha; void main() { gl_FragColor = vec4(vColor * vAlpha, 1.0); }`,
+});
+
+let neurons, fibers, centroids = [], tracts = [], tractGroup;
+function makeBrain(name) {
+  for (const o of [neurons, fibers, tractGroup]) if (o) { brain.remove(o); o.geometry?.dispose(); o.traverse?.((c) => c.geometry?.dispose()); }
+  const b = buildBrain(name);
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.BufferAttribute(b.pos, 3));
+  g.setAttribute('aRegion', new THREE.BufferAttribute(b.reg, 1));
+  g.setAttribute('aSeed', new THREE.BufferAttribute(b.sd, 1));
+  g.setAttribute('aShell', new THREE.BufferAttribute(b.shell, 1));
+  neurons = new THREE.Points(g, neuronMat);
+  brain.add(neurons);
+
+  // centroids of every region (for tracts, signals and labels)
+  const sums = REGIONS.map(() => [0, 0, 0, 0]);
+  const count = b.reg.length;
+  for (let i = 0; i < count; i++) {
+    const r = b.reg[i], s = sums[r];
+    s[0] += b.pos[i * 3]; s[1] += b.pos[i * 3 + 1]; s[2] += b.pos[i * 3 + 2]; s[3]++;
+  }
+  centroids = sums.map((s, i) => {
+    const c = new THREE.Vector3(s[0] / s[3], s[1] / s[3], s[2] / s[3]);
+    // bilateral regions sit on the midline otherwise; pull the label onto the left side, which faces the camera
+    if (['prefrontal', 'motor', 'parietal', 'occipital', 'temporal', 'hippocampus', 'amygdala'].includes(REGIONS[i].key)) c.x = REGIONS[i].key === 'temporal' ? -0.68 : REGIONS[i].key === 'hippocampus' || REGIONS[i].key === 'amygdala' ? -0.36 : -0.45;
+    if (REGIONS[i].key === 'broca' || REGIONS[i].key === 'wernicke') c.x -= 0.05;
+    return c;
+  });
+
+  // local fibres: short connections between nearby neurons of the same region
+  const fpos = [], freg = [], fsd = [];
+  for (let k = 0; k < 5000; k++) {
+    const i = Math.floor(rand() * count);
+    let best = -1, bd = 1e9;
+    for (let t = 0; t < 60; t++) {
+      const j = Math.floor(rand() * count);
+      if (j === i || b.reg[j] !== b.reg[i]) continue;
+      const dx = b.pos[i * 3] - b.pos[j * 3], dy = b.pos[i * 3 + 1] - b.pos[j * 3 + 1], dz = b.pos[i * 3 + 2] - b.pos[j * 3 + 2];
+      const d = dx * dx + dy * dy + dz * dz;
+      if (d < bd && d > 0.002) { bd = d; best = j; }
+    }
+    if (best < 0 || bd > 0.008) continue;
+    fpos.push(b.pos[i * 3], b.pos[i * 3 + 1], b.pos[i * 3 + 2], b.pos[best * 3], b.pos[best * 3 + 1], b.pos[best * 3 + 2]);
+    const s = rand();
+    freg.push(b.reg[i], b.reg[i]); fsd.push(s, s);
+  }
+  const fg = new THREE.BufferGeometry();
+  fg.setAttribute('position', new THREE.Float32BufferAttribute(fpos, 3));
+  fg.setAttribute('aRegion', new THREE.Float32BufferAttribute(freg, 1));
+  fg.setAttribute('aSeed', new THREE.Float32BufferAttribute(fsd, 1));
+  fibers = new THREE.LineSegments(fg, fiberMat);
+  brain.add(fibers);
+
+  // long-range white-matter tracts between regions that work together
+  tractGroup = new THREE.Group();
+  tracts = [];
+  const pairs = [
+    ['occipital', 'parietal'], ['occipital', 'hippocampus'], ['occipital', 'prefrontal'], ['hippocampus', 'prefrontal'],
+    ['amygdala', 'prefrontal'], ['amygdala', 'hippocampus'], ['amygdala', 'brainstem'], ['prefrontal', 'motor'],
+    ['motor', 'cerebellum'], ['parietal', 'cerebellum'], ['parietal', 'motor'], ['prefrontal', 'parietal'],
+    ['temporal', 'wernicke'], ['wernicke', 'broca'], ['wernicke', 'prefrontal'], ['prefrontal', 'broca'],
+    ['brainstem', 'cerebellum'], ['brainstem', 'motor'], ['temporal', 'hippocampus'], ['parietal', 'hippocampus'],
+  ];
+  for (const [a, b2] of pairs) {
+    const curve = curveBetween(RI[a], RI[b2]);
+    const geo = new THREE.TubeGeometry(curve, 40, 0.003, 5, false);
+    const mat = new THREE.MeshBasicMaterial({ color: new THREE.Color(REGIONS[RI[a]].color).lerp(new THREE.Color(REGIONS[RI[b2]].color), 0.5), transparent: true, opacity: 0.08, blending: THREE.AdditiveBlending, depthWrite: false });
+    const mesh = new THREE.Mesh(geo, mat);
+    tractGroup.add(mesh);
+    tracts.push({ a: RI[a], b: RI[b2], mesh, heat: 0 });
+  }
+  brain.add(tractGroup);
+}
+
+const curveCache = new Map();
+function curveBetween(a, b) {
+  const key = `${a}>${b}`;
+  if (curveCache.has(key)) return curveCache.get(key);
+  const A = centroids[a].clone().multiplyScalar(0.92), B = centroids[b].clone().multiplyScalar(0.92);
+  const mid = A.clone().add(B).multiplyScalar(0.5);
+  const ctrl = mid.multiplyScalar(0.7).add(new THREE.Vector3(0, 0.1, 0));
+  const c = new THREE.QuadraticBezierCurve3(A, ctrl, B);
+  curveCache.set(key, c);
+  return c;
+}
+
+// =====================================================================================
+// Signals: bright pulses that travel between regions
+// =====================================================================================
+const MAX_SIG = 260, TRAIL = 7;
+const sigPos = new Float32Array(MAX_SIG * TRAIL * 3), sigCol = new Float32Array(MAX_SIG * TRAIL * 3), sigSize = new Float32Array(MAX_SIG * TRAIL);
+const sigGeo = new THREE.BufferGeometry();
+sigGeo.setAttribute('position', new THREE.BufferAttribute(sigPos, 3));
+sigGeo.setAttribute('color', new THREE.BufferAttribute(sigCol, 3));
+sigGeo.setAttribute('aSize', new THREE.BufferAttribute(sigSize, 1));
+const sigMat = new THREE.ShaderMaterial({
+  uniforms: { uPixel: uniforms.uPixel },
+  transparent: true, depthWrite: false, depthTest: false, blending: THREE.AdditiveBlending, vertexColors: true,
+  vertexShader: `attribute float aSize; varying vec3 vC; uniform float uPixel;
+    void main(){ vC = color; vec4 mv = modelViewMatrix * vec4(position,1.0); gl_PointSize = aSize * uPixel / -mv.z * 100.0; gl_Position = projectionMatrix * mv; }`,
+  fragmentShader: `varying vec3 vC; void main(){ float d = length(gl_PointCoord-0.5); float a = smoothstep(0.5,0.0,d); gl_FragColor = vec4(vC*a, 1.0); }`,
+});
+const sigPoints = new THREE.Points(sigGeo, sigMat);
+sigPoints.frustumCulled = false;
+brain.add(sigPoints);
+let signals = [];
+const activity = new Array(N_REG).fill(0);
+const baseline = new Array(N_REG).fill(0);
+
+function signal(from, to, color, delay = 0, onArrive) {
+  if (from === to) { setTimeout(() => { pulse(to, 0.8); onArrive?.(); }, delay); return; }
+  const s = { a: RI[from], b: RI[to], t: 0, speed: 0.9 + Math.random() * 0.3, color: new THREE.Color(color), start: performance.now() + delay, onArrive };
+  signals.push(s);
+  if (signals.length > MAX_SIG) signals.shift();
+}
+/** Send a signal along a chain of regions, e.g. ['occipital','hippocampus','prefrontal'] */
+function route(chain, color, delay = 0, spread = 1) {
+  pulse(chain[0], 0.7);
+  let t = delay;
+  for (let i = 0; i < chain.length - 1; i++) {
+    for (let k = 0; k < spread; k++) signal(chain[i], chain[i + 1], color ?? REGIONS[RI[chain[i]]].color, t + k * 90);
+    t += 650;
+  }
+}
+function pulse(key, amount = 0.6) {
+  const i = typeof key === 'number' ? key : RI[key];
+  activity[i] = Math.min(1.6, activity[i] + amount);
+  fires[i]++;
+  for (const tr of tracts) if (tr.a === i || tr.b === i) tr.heat = Math.min(1, tr.heat + amount * 0.25);
+}
+
+// =====================================================================================
+// Villager state
+// =====================================================================================
+const fires = new Array(N_REG).fill(0);
+const regionLog = REGIONS.map(() => []);
+let me = null; // the villager being shown
+let roster = [];
+let thinking = false;
+
+function logRegion(keys, text) {
+  for (const k of [].concat(keys)) {
+    const l = regionLog[RI[k]];
+    l.unshift({ t: Date.now(), text });
+    if (l.length > 6) l.pop();
+  }
+}
+
+function xpOf(b) {
+  const s = b.stats ?? {};
+  let n = 0;
+  for (const a of Object.values(s.actions ?? {})) n += a.ok + a.fail * 0.5;
+  for (const v of Object.values(s.social ?? {})) n += v * 2;
+  return n + (s.thoughts ?? 0) * 0.5 + (b.notes?.length ?? 0) * 4 + (s.chats ?? 0) * 0.3;
+}
+const levelOf = (b) => 1 + Math.floor(Math.sqrt(xpOf(b) / 3));
+const growthOf = (b) => 1 - Math.exp(-xpOf(b) / 150);
+function hueOf(name) {
+  const i = Math.max(0, roster.findIndex((r) => r.name === name));
+  return `hsl(${(i * 137.508 + 195) % 360}, 92%, 74%)`;
+}
+
+// resting glow: regions this villager uses a lot are brighter even when idle
+function computeBaseline() {
+  baseline.fill(0);
+  if (!me?.stats) return;
+  const add = (k, v) => { baseline[RI[k]] += v; };
+  for (const [name, a] of Object.entries(me.stats.actions ?? {})) for (const k of regionsOfTool(name)) add(k, Math.log2(1 + a.ok + a.fail));
+  add('prefrontal', Math.log2(1 + (me.stats.thoughts ?? 0)) * 1.2);
+  add('hippocampus', Math.log2(1 + (me.notes?.length ?? 0)) * 1.5);
+  add('broca', Math.log2(1 + (me.stats.chats ?? 0)));
+  add('temporal', Math.log2(1 + Object.values(me.stats.social ?? {}).reduce((a, b) => a + b, 0)));
+  add('amygdala', (me.stats.deaths ?? 0) * 0.8);
+  add('occipital', Math.log2(1 + (me.stats.thoughts ?? 0)) * 0.8);
+  const max = Math.max(1, ...baseline);
+  for (let i = 0; i < N_REG; i++) baseline[i] = 0.05 + 0.2 * (baseline[i] / max);
+}
+
+function setMe(b) {
+  const switched = !me || me.name !== b.name;
+  me = { ...(me && !switched ? me : {}), ...b };
+  if (switched) {
+    curveCache.clear();
+    makeBrain(me.name);
+    for (const l of regionLog) l.length = 0;
+    fires.fill(0);
+    trace.length = 0;
+    renderTrace();
+    document.getElementById('thought-txt').textContent = me.last_plan ?? '';
+    document.getElementById('thought-lbl').textContent = me.last_plan ? 'Latest thought' : '';
+    document.title = `${me.name}'s brain`;
+    history.replaceState(null, '', `brain${qs({ bot: me.name })}`);
+  }
+  computeBaseline();
+  renderHeader();
+}
+
+function renderHeader() {
+  const hue = hueOf(me.name);
+  document.documentElement.style.setProperty('--hue', hue);
+  document.getElementById('name').textContent = me.name;
+  const mode = me.mode && me.mode !== 'autonomous' ? `, ${me.mode} mode` : '';
+  document.getElementById('role').textContent = `${me.role ?? ''}, level ${levelOf(me)}${mode}${me.online === false ? ', offline' : ''}`;
+  document.getElementById('hp').style.width = `${Math.max(0, Math.min(1, (me.health ?? 0) / 20)) * 100}%`;
+  document.getElementById('food').style.width = `${Math.max(0, Math.min(1, (me.food ?? 0) / 20)) * 100}%`;
+  const pick = document.getElementById('pick');
+  if (pick.options.length !== roster.length) {
+    pick.innerHTML = roster.map((r) => `<option value="${esc(r.name)}">${esc(r.name)}, ${esc(r.role ?? '')}</option>`).join('');
+  }
+  pick.value = me.name;
+}
+
+// =====================================================================================
+// The thought trace (left panel)
+// =====================================================================================
+const trace = []; // cycles, newest first: { t, stages: [{ key, label, value, meta, fail, region }] }
+const traceEl = document.getElementById('trace');
+const fmtArgs = (o) => {
+  const e = Object.entries(o ?? {});
+  return e.length ? e.map(([k, v]) => `${k.replace(/_/g, ' ')} ${typeof v === 'object' ? JSON.stringify(v) : v}`).join(', ') : '';
+};
+const time = (t) => new Date(t).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+function newCycle(t, title) {
+  trace.unshift({ t, title, stages: [] });
+  if (trace.length > 6) trace.pop();
+  return trace[0];
+}
+function addStage(stage, t = Date.now()) {
+  let c = trace[0];
+  if (!c || (stage.startsCycle)) c = newCycle(t, stage.cycleTitle ?? 'Thought');
+  c.stages.push({ ...stage, isNew: true });
+  if (c.stages.length > 18) c.stages.shift();
+  renderTrace();
+}
+function renderTrace() {
+  if (!trace.length) { traceEl.innerHTML = '<p class="empty">Waiting for the next thought…</p>'; return; }
+  traceEl.innerHTML = trace.map((c, i) => `
+    <div class="cycle ${i === 0 ? 'current' : ''}">
+      <div class="cycle-head"><b>${esc(c.title)}</b><span>${time(c.t)}</span></div>
+      ${c.stages.map((s) => `<div class="stage ${s.fail ? 'fail' : ''} ${s.isNew ? 'new' : ''}" style="--c:${REGIONS[RI[s.region]].color}">
+        <div class="k">${esc(s.label)}</div>
+        ${s.value ? `<div class="v ${s.dim ? 'dim' : ''}">${s.value}</div>` : ''}
+        ${s.meta ? `<div class="m">${esc(s.meta)}</div>` : ''}
+      </div>`).join('')}
+    </div>`).join('');
+  for (const c of trace) for (const s of c.stages) s.isNew = false;
+}
+
+// =====================================================================================
+// Events from the village → brain activity
+// =====================================================================================
+const OK = '#7ef0b0', BAD = '#ff7a5c';
+function handleEvent(ev, { replay = false } = {}) {
+  const t = ev.t ?? Date.now();
+  const anim = !replay;
+  switch (ev.type) {
+    case 'perceive': {
+      const sees = ev.sees?.length ? ev.sees.join(', ') : 'nothing notable';
+      const heard = (ev.events ?? []).filter((e) => e.type === 'chat' || e.type === 'whisper');
+      const other = (ev.events ?? []).filter((e) => e.type !== 'chat' && e.type !== 'whisper');
+      addStage({ startsCycle: true, cycleTitle: ev.directive ? 'Working on your job' : 'New thought', region: 'occipital', label: 'Senses',
+        value: `Sees ${esc(sees)}${ev.near?.length ? `. Nearby: ${esc(ev.near.slice(0, 3).join(', '))}` : ''}`,
+        meta: `Health ${ev.health}, food ${ev.food}, ${ev.time ?? ''}` }, t);
+      if (heard.length) addStage({ region: 'wernicke', label: 'Heard', value: heard.map((e) => esc(e.text)).join('<br>') }, t);
+      if (other.length) addStage({ region: ev.threat ? 'amygdala' : 'temporal', label: 'Since last time', value: other.map((e) => esc(e.text)).join('<br>') }, t);
+      addStage({ region: 'hippocampus', label: 'Recalls', value: ev.directive ? `Your job: ${esc(ev.directive)}` : ev.goal ? `Goal: ${esc(ev.goal)}` : 'No goal yet', meta: `${ev.memories} memories in mind` }, t);
+      logRegion('occipital', `Saw ${sees}`);
+      logRegion('hippocampus', `Recalled ${ev.memories} memories`);
+      if (anim) {
+        route(['occipital', 'parietal'], REGIONS[RI.occipital].color, 0, 2);
+        route(['occipital', 'hippocampus', 'prefrontal'], REGIONS[RI.hippocampus].color, 300, 2);
+        if (heard.length) route(['temporal', 'wernicke', 'prefrontal'], REGIONS[RI.wernicke].color, 200, 2);
+        if (ev.threat) route(['amygdala', 'prefrontal'], REGIONS[RI.amygdala].color, 0, 3);
+      }
+      break;
+    }
+    case 'thinking':
+      thinking = ev.on;
+      if (ev.on && anim) pulse('prefrontal', 0.6);
+      break;
+    case 'step': {
+      const tools = ev.tools ?? [];
+      addStage({ region: 'prefrontal', label: `Reasoning, step ${ev.step}`,
+        value: (ev.text ? `${esc(ev.text)}<br>` : '') + (tools.length ? `Decides to: ${tools.map((x) => `<span class="tool">${esc(x.name.replace(/_/g, ' '))}${fmtArgs(x.input) ? `: ${esc(fmtArgs(x.input))}` : ''}</span>`).join('')}` : ''),
+        meta: `${(ev.tokens_in ?? 0) + (ev.tokens_cached ?? 0)} tokens read, ${ev.tokens_out ?? 0} written${ev.ms ? `, ${(ev.ms / 1000).toFixed(1)}s` : ''}` }, t);
+      logRegion('prefrontal', tools.length ? `Chose ${tools.map((x) => x.name).join(', ')}` : 'Finished a line of reasoning');
+      if (anim) {
+        pulse('prefrontal', 0.9);
+        tools.forEach((x, i) => route(['prefrontal', ...regionsOfTool(x.name)], REGIONS[RI.prefrontal].color, 250 + i * 500, 2));
+      }
+      break;
+    }
+    case 'act': {
+      const regs = regionsOfTool(ev.name);
+      if (ev.source === 'manual') {
+        addStage({ startsCycle: !trace[0] || trace[0].title !== 'Controlled by you', cycleTitle: 'Controlled by you', region: regs[0], label: 'You told it to', value: `<span class="tool">${esc(ev.name.replace(/_/g, ' '))}${fmtArgs(ev.args) ? `: ${esc(fmtArgs(ev.args))}` : ''}</span>` }, t);
+        if (anim) route(['wernicke', ...regs], REGIONS[RI.wernicke].color, 0, 2);
+      } else if (anim) route(regs, REGIONS[RI[regs[0]]].color, 0, 1);
+      logRegion(regs, `Started ${ev.name.replace(/_/g, ' ')}`);
+      break;
+    }
+    case 'action': {
+      if (ev.name === 'observe') break;
+      const regs = regionsOfTool(ev.name);
+      if ((ev.name === 'chat' || ev.name === 'whisper') && ev.ok) break; // the "Says" line covers it
+      addStage({ region: regs[regs.length - 1], label: ev.ok ? `Done: ${ev.name.replace(/_/g, ' ')}` : `Failed: ${ev.name.replace(/_/g, ' ')}`, fail: !ev.ok,
+        value: esc(/^[{\[]/.test(String(ev.summary ?? '').trim()) ? '' : ev.summary), meta: ev.ms ? `took ${(ev.ms / 1000).toFixed(1)}s` : '' }, t);
+      logRegion(regs, `${ev.ok ? 'Finished' : 'Failed'} ${ev.name.replace(/_/g, ' ')}`);
+      if (anim) {
+        // feedback travels back to the planner: green for success, red for failure
+        route([regs[regs.length - 1], 'prefrontal'], ev.ok ? OK : BAD, 0, 3);
+        if (!ev.ok) pulse('amygdala', 0.35);
+      }
+      if (me?.stats) {
+        const a = (me.stats.actions[ev.name] ??= { ok: 0, fail: 0 });
+        ev.ok ? a.ok++ : a.fail++;
+        computeBaseline();
+      }
+      break;
+    }
+    case 'result': {
+      const regs = regionsOfTool(ev.tool);
+      addStage({ region: regs[0], label: ev.tool === 'remember' ? 'Stored a memory' : ev.tool.replace(/_/g, ' '), fail: !ev.ok, value: esc(ev.summary) }, t);
+      break;
+    }
+    case 'memory':
+      logRegion('hippocampus', `Remembered: ${ev.text}`);
+      if (me) { me.notes = [...(me.notes ?? []), ev.text]; computeBaseline(); }
+      if (anim) { route(['prefrontal', 'hippocampus'], REGIONS[RI.hippocampus].color, 0, 4); pulse('hippocampus', 1); }
+      break;
+    case 'goal':
+      addStage({ region: 'prefrontal', label: 'New goal', value: esc(ev.text) }, t);
+      logRegion('prefrontal', `New goal: ${ev.text}`);
+      if (anim) pulse('prefrontal', 1.2);
+      break;
+    case 'thought':
+      addStage({ region: 'prefrontal', label: 'Conclusion', value: esc(ev.text) }, t);
+      showThought(ev.text, 'Latest thought');
+      if (anim) { pulse('prefrontal', 1); route(['prefrontal', 'hippocampus'], REGIONS[RI.prefrontal].color, 200, 1); }
+      break;
+    case 'chat': case 'whisper':
+      logRegion('broca', `Said: ${ev.text}`);
+      if (anim) route(['prefrontal', 'broca'], REGIONS[RI.broca].color, 0, 2);
+      addStage({ region: 'broca', label: ev.type === 'whisper' ? `Whispers to ${ev.to}` : 'Says', value: `“${esc(ev.text)}”` }, t);
+      break;
+    case 'heard':
+      logRegion(['temporal', 'wernicke'], `${ev.from}: ${ev.text}`);
+      if (anim) route(['temporal', 'wernicke'], REGIONS[RI.temporal].color, 0, 2);
+      break;
+    case 'directive':
+      addStage({ startsCycle: true, cycleTitle: 'You gave it a job', region: 'wernicke', label: `From ${ev.from}`, value: esc(ev.text) }, t);
+      logRegion('wernicke', `Job: ${ev.text}`);
+      if (anim) route(['temporal', 'wernicke', 'prefrontal'], REGIONS[RI.wernicke].color, 0, 4);
+      break;
+    case 'directive-done':
+      addStage({ region: 'prefrontal', label: ev.ok ? 'Finished your job' : 'Gave up on your job', fail: !ev.ok, value: esc(ev.summary) }, t);
+      break;
+    case 'hurt':
+      logRegion('amygdala', `Hurt${ev.by ? ` by ${ev.by}` : ''}, health ${ev.health}`);
+      if (anim) { pulse('amygdala', 1.2); route(['amygdala', 'brainstem'], REGIONS[RI.amygdala].color, 0, 3); }
+      if (me) me.health = ev.health;
+      break;
+    case 'death':
+      addStage({ startsCycle: true, cycleTitle: 'Died', region: 'amygdala', label: 'Died', value: `Near ${esc(ev.where)}. Respawning.`, fail: true }, t);
+      logRegion('amygdala', `Died near ${ev.where}`);
+      if (anim) for (let i = 0; i < N_REG; i++) pulse(i, 0.9);
+      break;
+    case 'reflex': {
+      const k = ev.kind === 'eat' ? ['brainstem'] : ev.kind === 'flee' ? ['amygdala', 'brainstem', 'cerebellum'] : ['amygdala', 'motor', 'cerebellum'];
+      addStage({ region: k[0] === 'brainstem' ? 'brainstem' : 'amygdala', label: 'Reflex', value: esc(ev.text), meta: 'automatic, no thinking needed' }, t);
+      logRegion(k, `Reflex: ${ev.text}`);
+      if (anim) route(k, REGIONS[RI[k[0]]].color, 0, 3);
+      break;
+    }
+    case 'online': if (me) me.online = true; break;
+    case 'offline': if (me) me.online = false; break;
+    case 'mode': if (me) me.mode = ev.mode; break;
+  }
+  if (me && !replay) renderHeader();
+}
+
+let thoughtTimer;
+function showThought(text, label) {
+  const el = document.getElementById('thought-txt');
+  el.classList.add('fade');
+  clearTimeout(thoughtTimer);
+  thoughtTimer = setTimeout(() => {
+    el.textContent = text;
+    document.getElementById('thought-lbl').textContent = label;
+    el.classList.remove('fade');
+  }, 400);
+}
+
+// =====================================================================================
+// Regions panel
+// =====================================================================================
+let focus = -1;
+const listEl = document.getElementById('region-list');
+const detailEl = document.getElementById('region-detail');
+listEl.innerHTML = REGIONS.map((r, i) => `
+  <button class="region-row" type="button" data-i="${i}" aria-pressed="false" style="--c:${r.color}">
+    <span class="sw"></span>
+    <span><b>${esc(r.name)}</b><span class="f">${esc(r.fn)}</span></span>
+    <span class="meter"><i></i></span>
+  </button>`).join('');
+const rowEls = [...listEl.querySelectorAll('.region-row')];
+rowEls.forEach((el) => el.addEventListener('click', () => setFocus(focus === +el.dataset.i ? -1 : +el.dataset.i)));
+
+function setFocus(i) {
+  focus = i;
+  uniforms.uFocus.value = i;
+  rowEls.forEach((el, k) => el.setAttribute('aria-pressed', String(k === i)));
+  renderDetail();
+  if (i >= 0) {
+    // swing the camera round to face the region
+    const c = centroids[i].clone();
+    const dir = c.clone().setY(c.y * 0.6).normalize();
+    if (dir.lengthSq() < 0.01 || Math.abs(c.x) < 0.1) dir.set(-0.85, 0.25, c.z > 0 ? 0.5 : -0.5).normalize();
+    camTarget = { pos: dir.multiplyScalar(homeDist * 0.8).add(new THREE.Vector3(0, 0.25, 0)), look: c.clone().multiplyScalar(0.5) };
+    controls.autoRotate = false;
+  } else {
+    camTarget = { pos: camera.position.clone().normalize().multiplyScalar(homeDist), look: new THREE.Vector3(0, -0.15, -0.05) };
+    controls.autoRotate = !reduceMotion;
+  }
+}
+function renderDetail() {
+  if (focus < 0) { detailEl.hidden = true; return; }
+  const r = REGIONS[focus];
+  const log = regionLog[focus];
+  detailEl.hidden = false;
+  detailEl.style.setProperty('--c', r.color);
+  detailEl.innerHTML = `<h3>${esc(r.name)}</h3><p>${esc(r.about)}</p>
+    <p class="m" style="color:var(--moon-dim);font-size:12.5px">Fired ${fires[focus]} times since you opened this page.</p>
+    ${log.length ? `<ul>${log.map((l) => `<li>${time(l.t)}: ${esc(l.text)}</li>`).join('')}</ul>` : '<p class="empty" style="font-size:12.5px">Nothing yet.</p>'}`;
+}
+setInterval(renderDetail, 2000);
+
+// clicking the 3D brain picks the nearest region
+const raycaster = new THREE.Raycaster();
+raycaster.params.Points.threshold = 0.035;
+const mouse = new THREE.Vector2();
+let downAt = null;
+canvas.addEventListener('pointerdown', (e) => { downAt = [e.clientX, e.clientY]; });
+canvas.addEventListener('pointerup', (e) => {
+  if (!downAt || Math.hypot(e.clientX - downAt[0], e.clientY - downAt[1]) > 5) return;
+  const rect = canvas.getBoundingClientRect();
+  mouse.set(((e.clientX - rect.left) / rect.width) * 2 - 1, -((e.clientY - rect.top) / rect.height) * 2 + 1);
+  raycaster.setFromCamera(mouse, camera);
+  const hit = raycaster.intersectObject(neurons)[0];
+  if (!hit) return setFocus(-1);
+  const r = neurons.geometry.attributes.aRegion.array[hit.index];
+  setFocus(focus === r ? -1 : r);
+});
+let hoverRegion = -1;
+canvas.addEventListener('pointermove', (e) => {
+  if (e.buttons) return;
+  const rect = canvas.getBoundingClientRect();
+  mouse.set(((e.clientX - rect.left) / rect.width) * 2 - 1, -((e.clientY - rect.top) / rect.height) * 2 + 1);
+  raycaster.setFromCamera(mouse, camera);
+  const hit = neurons && raycaster.intersectObject(neurons)[0];
+  hoverRegion = hit ? neurons.geometry.attributes.aRegion.array[hit.index] : -1;
+  canvas.style.cursor = hit ? 'pointer' : 'grab';
+});
+
+// floating labels
+const tagsEl = document.getElementById('tags');
+const tagEls = REGIONS.map((r) => {
+  const el = document.createElement('div');
+  el.className = 'tag'; el.style.setProperty('--c', r.color); el.textContent = r.name;
+  tagsEl.appendChild(el);
+  return el;
+});
+
+// =====================================================================================
+// Render loop
+// =====================================================================================
+let camTarget = null;
+let homeDist = 4.6;
+const clock = new THREE.Clock();
+function resize() {
+  const w = canvas.clientWidth, h = canvas.clientHeight;
+  renderer.setSize(w, h, false);
+  camera.aspect = w / h;
+  // keep the brain clear of the side panels on wide screens
+  // on wide screens, frame the brain in the space between the two panels
+  const wide = w > 900;
+  const dist = wide ? 4.6 * Math.max(1, 1180 / w) : (w / h < 0.8 ? 6.6 : 4.6);
+  homeDist = dist;
+  if (!camTarget) camera.position.setLength(dist);
+  controls.maxDistance = dist * 1.6;
+  camera.updateProjectionMatrix();
+  uniforms.uPixel.value = h / 900 * renderer.getPixelRatio();
+}
+addEventListener('resize', resize);
+
+const tmp = new THREE.Vector3();
+function frame() {
+  const dt = Math.min(0.05, clock.getDelta());
+  const now = performance.now();
+  uniforms.uTime.value += dt;
+
+  if (camTarget) {
+    camera.position.lerp(camTarget.pos, 0.05);
+    controls.target.lerp(camTarget.look, 0.05);
+    if (camera.position.distanceTo(camTarget.pos) < 0.02) camTarget = null;
+  }
+  controls.update();
+
+  // brain size grows with experience; whole thing breathes gently
+  const g = me ? growthOf(me) : 0.5;
+  uniforms.uReveal.value += ((0.42 + 0.58 * g) - uniforms.uReveal.value) * 0.02;
+  const breathe = reduceMotion ? 1 : 1 + Math.sin(now * 0.0011) * 0.008;
+  brain.scale.setScalar((0.86 + 0.14 * g) * breathe);
+
+  // activity decays toward each region's resting glow
+  if (thinking) activity[RI.prefrontal] = Math.max(activity[RI.prefrontal], 0.45 + 0.25 * Math.sin(now * 0.008));
+  for (let i = 0; i < N_REG; i++) {
+    activity[i] = baseline[i] + (activity[i] - baseline[i]) * Math.exp(-dt * 1.1);
+    uniforms.uAct.value[i] = activity[i];
+  }
+  // ambient chatter between connected regions so it never looks dead
+  const ambient = (thinking ? 4 : 0.9) * (me?.online === false ? 0.3 : 1) * (reduceMotion ? 0.3 : 1);
+  if (tracts.length && Math.random() < ambient * dt) {
+    const w = tracts.map((tr) => 0.2 + baseline[tr.a] + baseline[tr.b]);
+    let r = Math.random() * w.reduce((a, b) => a + b, 0), k = 0;
+    while (r > w[k] && k < w.length - 1) r -= w[k++];
+    const tr = tracts[k];
+    const flip = Math.random() < 0.5;
+    signal(REGIONS[flip ? tr.a : tr.b].key, REGIONS[flip ? tr.b : tr.a].key, REGIONS[flip ? tr.a : tr.b].color);
+  }
+  for (const tr of tracts) {
+    tr.heat *= Math.exp(-dt * 0.9);
+    const f = focus < 0 || tr.a === focus || tr.b === focus ? 1 : 0.15;
+    tr.mesh.material.opacity = (0.025 + 0.3 * tr.heat) * f;
+  }
+
+  // signals
+  sigSize.fill(0);
+  let n = 0;
+  signals = signals.filter((s) => {
+    if (now < s.start) return true;
+    s.t += dt * s.speed * (reduceMotion ? 0.6 : 1);
+    if (s.t >= 1) { pulse(s.b, 0.35); s.onArrive?.(); return false; }
+    const curve = curveBetween(s.a, s.b);
+    for (let k = 0; k < TRAIL && n < MAX_SIG * TRAIL; k++, n++) {
+      const tt = Math.max(0, s.t - k * 0.018);
+      curve.getPoint(tt, tmp);
+      sigPos[n * 3] = tmp.x; sigPos[n * 3 + 1] = tmp.y; sigPos[n * 3 + 2] = tmp.z;
+      const fade = 1 - k / TRAIL;
+      sigCol[n * 3] = s.color.r * fade; sigCol[n * 3 + 1] = s.color.g * fade; sigCol[n * 3 + 2] = s.color.b * fade;
+      sigSize[n] = (k === 0 ? 0.5 : 0.3) * fade;
+    }
+    return true;
+  });
+  sigGeo.attributes.position.needsUpdate = true;
+  sigGeo.attributes.color.needsUpdate = true;
+  sigGeo.attributes.aSize.needsUpdate = true;
+
+  // meters + labels
+  const top = activity.map((a, i) => [a - baseline[i], i]).sort((a, b) => b[0] - a[0]).slice(0, 2).filter(([a]) => a > 0.35).map(([, i]) => i);
+  const w = canvas.clientWidth, h = canvas.clientHeight;
+  for (let i = 0; i < N_REG; i++) {
+    rowEls[i].querySelector('.meter i').style.width = `${Math.min(100, activity[i] * 70)}%`;
+    const show = centroids[i] && (i === focus || i === hoverRegion || (focus < 0 && top.includes(i)));
+    if (show) {
+      tmp.copy(centroids[i]).applyMatrix4(brain.matrixWorld).project(camera);
+      tagEls[i].style.transform = `translate(${(tmp.x * 0.5 + 0.5) * w}px, ${(-tmp.y * 0.5 + 0.5) * h}px) translate(-50%, -50%)`;
+    }
+    tagEls[i].classList.toggle('on', !!show && tmp.z < 1);
+  }
+
+  renderer.render(scene, camera);
+  requestAnimationFrame(frame);
+}
+
+// =====================================================================================
+// Connection: live stream, or a demo villager if the village isn't running
+// =====================================================================================
+const statusEl = document.getElementById('status');
+const statusText = document.getElementById('status-text');
+function setStatus(mode, text) { statusEl.className = `status ${mode}`; statusText.textContent = text; }
+
+function pickBot(list) {
+  roster = list.map((b) => ({ name: b.name, role: b.role }));
+  const found = list.find((b) => b.name.toLowerCase() === botName.toLowerCase()) ?? list[0];
+  botName = found.name;
+  return found;
+}
+
+let es = null, demoTimer = null;
+function connect() {
+  if (FORCE_DEMO) return startDemo();
+  es = new EventSource(`stream${qs()}`);
+  let opened = false;
+  const fallback = setTimeout(() => { if (!opened) startDemo(); }, 5000);
+  es.onopen = () => { opened = true; clearTimeout(fallback); };
+  es.onmessage = (m) => {
+    const ev = JSON.parse(m.data);
+    if (ev.type === 'snapshot') {
+      stopDemo();
+      setStatus('live', 'Live');
+      setMe(pickBot(ev.bots));
+      for (const e of ev.events) if (e.bot === me.name) handleEvent(e, { replay: true });
+      renderTrace();
+      return;
+    }
+    if (ev.type === 'status') {
+      const b = ev.bots.find((x) => x.name === me?.name);
+      if (b) { thinking = b.thinking; Object.assign(me, { health: b.health, food: b.food, online: b.online, mode: b.mode, activity: b.activity }); renderHeader(); }
+      return;
+    }
+    if (ev.bot === me?.name) handleEvent(ev);
+  };
+  es.onerror = () => { if (!demoTimer) setStatus('', 'Village not running. Retrying…'); };
+}
+
+document.getElementById('pick').addEventListener('change', (e) => {
+  botName = e.target.value;
+  if (demoTimer) { stopDemo(); startDemo(); return; }
+  es?.close();
+  connect();
+});
+
+function startDemo() {
+  if (demoTimer) return;
+  setStatus('demo', 'Demo villager. Start the village to see the real ones');
+  const names = [['Treebeard', 'lumberjack'], ['Gimli', 'miner'], ['Samwise', 'farmer'], ['Aragorn', 'builder'], ['Bilbo', 'explorer and cartographer'], ['Legolas', 'hunter'], ['Celebrimbor', 'blacksmith and crafter'], ['Boromir', 'guard'], ['Rosie', 'cook and gatherer'], ['Merry', 'quartermaster']];
+  const list = names.map(([name, role], i) => ({
+    name, role, mode: 'autonomous', online: true, health: 17, food: 14,
+    notes: ['Birch grove at 140, 68, -32', 'Village chest at 0, 64, 0', 'Iron in the river cave at -88, 41, 120'].slice(0, 1 + (i % 3)),
+    stats: { actions: { collect_block: { ok: 14 + i, fail: 2 }, craft: { ok: 6, fail: 1 }, go_to: { ok: 9, fail: 1 }, explore: { ok: 4, fail: 0 } }, social: { Gimli: 3 }, thoughts: 30 + i * 4, chats: 6, deaths: 0, links: {} },
+    last_plan: 'The chest is low on planks. I will chop the birch grove and bring back a stack.',
+  }));
+  setMe(pickBot(list));
+  const scripts = [
+    [['thinking', { on: true }], ['perceive', { sees: ['birch_log x14', 'grass_block', 'water'], near: ['player Steve (6m)', 'cow (11m)'], health: '17/20', food: '14/20', time: 'afternoon', memories: 3, goal: 'Keep the village stocked with planks', events: [{ type: 'chat', text: '<Steve> nice work today' }] }],
+      ['step', { step: 1, text: 'There are birch logs right here, and the village chest is low.', tools: [{ name: 'collect_block', input: { block: 'birch_log', count: 12 } }], tokens_in: 380, tokens_cached: 2900, tokens_out: 64, ms: 1400 }],
+      ['act', { name: 'collect_block', source: 'brain', args: { block: 'birch_log', count: 12 } }],
+      ['action', { name: 'collect_block', ok: true, summary: 'Mined 12/12. Inventory gained: birch_log +12.', ms: 21000 }, 3500],
+      ['step', { step: 2, text: 'Planks next, then tell Steve.', tools: [{ name: 'craft', input: { item: 'birch_planks', count: 32 } }, { name: 'chat', input: { message: 'Thanks Steve! Planks coming up.' } }], tokens_in: 120, tokens_cached: 3300, tokens_out: 70, ms: 1200 }],
+      ['act', { name: 'craft', source: 'brain', args: { item: 'birch_planks', count: 32 } }],
+      ['action', { name: 'craft', ok: true, summary: 'Crafted 32 birch_planks. Now have 32.', ms: 900 }],
+      ['chat', { text: 'Thanks Steve! Planks coming up.' }],
+      ['step', { step: 3, text: '', tools: [{ name: 'remember', input: { note: 'Birch grove next to the river, plenty left' } }], tokens_in: 90, tokens_cached: 3400, tokens_out: 40, ms: 900 }],
+      ['memory', { text: 'Birch grove next to the river, plenty left' }],
+      ['result', { tool: 'remember', ok: true, summary: 'Saved.' }],
+      ['thought', { text: 'I will take the planks to the village chest and then plant saplings where I cut.' }],
+      ['thinking', { on: false }]],
+    [['hurt', { health: 12, by: 'zombie' }], ['reflex', { kind: 'fight', text: 'fighting off a zombie' }], ['action', { name: 'attack', ok: true, summary: 'Defeated zombie.', ms: 6000 }, 3000],
+      ['thinking', { on: true }], ['perceive', { sees: ['oak_log x3', 'stone'], near: ['HOSTILE skeleton (18m)'], threat: true, health: '12/20', food: '11/20', time: 'night', memories: 3, goal: 'Keep the village stocked with planks', events: [{ type: 'reflex', text: 'Fighting off a zombie.' }] }],
+      ['step', { step: 1, text: 'It is night and there is a skeleton. Safer to go home.', tools: [{ name: 'go_home', input: {} }], tokens_in: 410, tokens_cached: 2900, tokens_out: 55, ms: 1300 }],
+      ['act', { name: 'go_home', source: 'brain', args: {} }], ['action', { name: 'go_home', ok: true, summary: 'Home (12, 64, -4).', ms: 18000 }, 3000],
+      ['step', { step: 2, text: '', tools: [{ name: 'sleep', input: {} }], tokens_in: 100, tokens_cached: 3300, tokens_out: 30, ms: 800 }],
+      ['act', { name: 'sleep', source: 'brain', args: {} }], ['action', { name: 'sleep', ok: false, summary: "Can't sleep: there are monsters nearby", ms: 400 }],
+      ['thought', { text: 'Too many monsters to sleep. I will stay inside and wait for morning.' }], ['thinking', { on: false }]],
+  ];
+  let si = 0;
+  const play = () => {
+    const script = scripts[si++ % scripts.length];
+    let t = 0;
+    for (const [type, data, extra] of script) {
+      t += 900 + (extra ?? 0);
+      setTimeout(() => demoTimer && handleEvent({ type, bot: me.name, t: Date.now(), ...data }), t);
+    }
+    demoTimer = setTimeout(play, t + 4000);
+  };
+  demoTimer = setTimeout(play, 600);
+}
+function stopDemo() { clearTimeout(demoTimer); demoTimer = null; }
+
+// keyboard: Esc clears focus, arrows switch villager
+addEventListener('keydown', (e) => {
+  if (e.target.closest?.('select')) return;
+  if (e.key === 'Escape') setFocus(-1);
+  if ((e.key === 'ArrowRight' || e.key === 'ArrowLeft') && roster.length) {
+    const i = roster.findIndex((r) => r.name === me?.name);
+    const next = roster[(i + (e.key === 'ArrowRight' ? 1 : roster.length - 1)) % roster.length];
+    const pick = document.getElementById('pick');
+    pick.value = next.name;
+    pick.dispatchEvent(new Event('change'));
+  }
+});
+
+resize();
+connect();
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>

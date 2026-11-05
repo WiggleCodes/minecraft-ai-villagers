@@ -1,0 +1,36 @@
+{
+  "name": "wigglys-minecraft-ai-villagers",
+  "version": "1.0.0",
+  "description": "Wiggly's Minecraft AI Villagers: AI players that live, learn, plan and work together in your Minecraft (Java) world, with a live brain dashboard and an MCP server for taking control.",
+  "author": "WiggleCodes (https://github.com/WiggleCodes)",
+  "homepage": "https://github.com/WiggleCodes",
+  "license": "PolyForm-Noncommercial-1.0.0",
+  "private": true,
+  "type": "module",
+  "main": "src/runner.js",
+  "bin": {
+    "wigglys-ai-villagers-mcp": "src/mcp/server.js"
+  },
+  "scripts": {
+    "start": "node src/runner.js",
+    "manual": "node src/runner.js --manual",
+    "mcp": "node src/mcp/server.js",
+    "check": "node --check src/runner.js && node --check src/mcp/server.js"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.32.1",
+    "dotenv": "^16.4.5",
+    "minecraft-data": "^3.0.0",
+    "mineflayer": "^4.39.0",
+    "mineflayer-collectblock": "^1.6.0",
+    "mineflayer-pathfinder": "^2.4.5",
+    "mineflayer-pvp": "^1.3.2",
+    "prismarine-schematic": "^1.3.0",
+    "three": "^0.170.0",
+    "vec3": "^0.1.10",
+    "zod": "^3.25.76"
+  }
+}

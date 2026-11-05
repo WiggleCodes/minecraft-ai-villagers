@@ -1,0 +1,30 @@
+// Wiggly's Minecraft AI Villagers - (c) 2026 WiggleCodes (https://github.com/WiggleCodes). Licensed under PolyForm Noncommercial 1.0.0. See LICENSE.
+// The ideas the village library starts with (data/library/activities.json). Villagers add more as they
+// learn, and you can import your own (data/library/import/). roles: who it suits (empty = anyone).
+export const STARTER_IDEAS = [
+  { text: 'Plant saplings in rows around the village to grow a forest for the future', roles: ['lumberjack', 'landscaper'] },
+  { text: 'Fill a shared chest with 64 planks and 32 logs for the builders', roles: ['lumberjack', 'quartermaster', 'courier'] },
+  { text: 'Build a house for a villager who has no home yet', roles: ['builder', 'mason'] },
+  { text: 'Build a wall with a gate around the village centre', roles: ['mason', 'builder', 'guard'] },
+  { text: 'Light up the village with torches so mobs cannot spawn inside it', roles: ['guard', 'builder', 'landscaper'] },
+  { text: 'Build a wheat farm next to still water and keep it harvested and replanted', roles: ['farmer', 'cook'] },
+  { text: 'Bake bread from the wheat harvest and stock the food chest', roles: ['farmer', 'cook'] },
+  { text: 'Hunt cows, pigs and chickens, cook the meat and put it in the food chest', roles: ['hunter', 'cook'] },
+  { text: 'Collect wool from sheep and craft a bed for everyone who has none', roles: ['shepherd', 'hunter'] },
+  { text: 'Mine coal and iron, smelt the iron and store the ingots for the blacksmith', roles: ['miner'] },
+  { text: 'Find a cave, mine down safely and look for diamonds', roles: ['miner', 'explorer'] },
+  { text: 'Craft a full set of iron armour and a shield for a guard who needs one', roles: ['blacksmith'] },
+  { text: 'Craft iron pickaxes and swords for villagers still using stone or wood tools', roles: ['blacksmith'] },
+  { text: 'Build a furnace and a smoker by the village chests so everyone can cook and smelt', roles: ['blacksmith', 'builder', 'quartermaster'] },
+  { text: 'Sort the shared chests: check what the village has and post what is missing', roles: ['quartermaster'] },
+  { text: 'Explore in a new direction, find useful resources and share the discoveries', roles: ['explorer'] },
+  { text: 'Look for another village or a temple and report where it is', roles: ['explorer'] },
+  { text: 'Patrol around the village at night and fight off any mobs', roles: ['guard'] },
+  { text: 'Gather sand by the water and stack it in a shared chest for glass', roles: ['fisher', 'landscaper'] },
+  { text: 'Clear and flatten an open area near the centre for new buildings', roles: ['landscaper', 'builder'] },
+  { text: 'Deliver food and tools to villagers who are working far from the village', roles: ['courier'] },
+  { text: 'Trade surplus crops or coal with a Minecraft villager for emeralds', roles: ['farmer', 'quartermaster', 'courier'] },
+  { text: 'Build a lookout tower at the edge of the village from a schematic', roles: ['builder', 'mason'] },
+  { text: 'Tidy up: remove stray blocks and pillars left around the village', roles: [] },
+  { text: 'Help a teammate with their task and ask what they need', roles: [] },
+];

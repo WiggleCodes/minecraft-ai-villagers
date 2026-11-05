@@ -1,0 +1,1347 @@
+<!doctype html>
+<!-- Wiggly's Minecraft AI Villagers - (c) 2026 WiggleCodes (https://github.com/WiggleCodes). Licensed under PolyForm Noncommercial 1.0.0. See LICENSE. -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Wiggly's Village Minds</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --sky-top: #120d2b;
+    --sky-bottom: #24113a;
+    --moon: #ece6ff;
+    --moon-dim: #a59bd0;
+    --gold: #ffd36e;
+    --mint: #7ef0b0;
+    --ember: #ff8a6a;
+    --sky-glow: #2b1a5c;
+    --glass: rgba(30, 20, 66, 0.55);
+    --edge: rgba(190, 170, 255, 0.18);
+    --pressed: rgba(120, 95, 230, 0.45);
+    --panel: rgba(22, 14, 50, 0.92);
+    --halo: 18, 13, 43;
+    --name: 'Bricolage Grotesque', ui-sans-serif, system-ui, sans-serif;
+    --body: 'Atkinson Hyperlegible', ui-sans-serif, system-ui, sans-serif;
+  }
+  /* Daytime skies by season (northern hemisphere, by month). Night keeps the starry default above. */
+  body.spring {
+    --sky-glow: #3f7d5c; --sky-top: #10302b; --sky-bottom: #22362f;
+    --glass: rgba(18, 52, 46, 0.55); --edge: rgba(190, 240, 210, 0.2); --pressed: rgba(90, 180, 130, 0.45);
+    --panel: rgba(14, 42, 38, 0.92); --halo: 14, 40, 36;
+  }
+  body.summer {
+    --sky-glow: #3f86c0; --sky-top: #0f2f4d; --sky-bottom: #1c4a5a;
+    --glass: rgba(16, 48, 78, 0.55); --edge: rgba(190, 225, 255, 0.2); --pressed: rgba(70, 150, 220, 0.45);
+    --panel: rgba(12, 38, 62, 0.92); --halo: 12, 36, 60;
+  }
+  body.autumn {
+    --sky-glow: #8f4a1c; --sky-top: #2a150e; --sky-bottom: #3b1c16;
+    --glass: rgba(66, 32, 18, 0.55); --edge: rgba(255, 205, 160, 0.2); --pressed: rgba(210, 120, 60, 0.45);
+    --panel: rgba(48, 24, 14, 0.92); --halo: 40, 20, 12;
+  }
+  body.winter {
+    --sky-glow: #5b7898; --sky-top: #131d31; --sky-bottom: #26324b;
+    --glass: rgba(30, 44, 70, 0.55); --edge: rgba(215, 230, 255, 0.22); --pressed: rgba(120, 160, 220, 0.45);
+    --panel: rgba(22, 32, 52, 0.92); --halo: 18, 26, 44;
+  }
+  /* Special occasions replace the season by day (at night the starry sky stays, with their extras on top). */
+  body.h-halloween { --sky-glow: #c2561a; --sky-top: #1a0d24; --sky-bottom: #2b1030; --glass: rgba(58, 24, 52, 0.55); --edge: rgba(255, 190, 120, 0.22); --pressed: rgba(220, 110, 40, 0.45); --panel: rgba(38, 16, 40, 0.92); --halo: 30, 12, 34; }
+  body.h-bonfire { --sky-glow: #a2451a; --sky-top: #120d1f; --sky-bottom: #26111f; --glass: rgba(50, 22, 30, 0.55); --edge: rgba(255, 200, 150, 0.2); --pressed: rgba(220, 120, 60, 0.45); --panel: rgba(34, 16, 26, 0.92); --halo: 24, 12, 22; }
+  body.h-christmas { --sky-glow: #8a2230; --sky-top: #0e2a1f; --sky-bottom: #172a38; --glass: rgba(20, 50, 40, 0.55); --edge: rgba(255, 215, 200, 0.22); --pressed: rgba(190, 50, 60, 0.5); --panel: rgba(14, 38, 32, 0.92); --halo: 12, 34, 28; }
+  body.h-newyear { --sky-glow: #3d43a0; --sky-top: #0c0e26; --sky-bottom: #1d1642; --glass: rgba(28, 26, 72, 0.55); --edge: rgba(220, 210, 255, 0.22); --pressed: rgba(110, 100, 230, 0.45); --panel: rgba(20, 18, 54, 0.92); --halo: 14, 14, 40; }
+  body.h-valentine { --sky-glow: #b0466e; --sky-top: #2a0f22; --sky-bottom: #3a1430; --glass: rgba(70, 22, 50, 0.55); --edge: rgba(255, 200, 225, 0.22); --pressed: rgba(220, 80, 140, 0.45); --panel: rgba(50, 16, 38, 0.92); --halo: 40, 12, 30; }
+  body.h-stpatrick { --sky-glow: #2f8a4a; --sky-top: #0e2a1a; --sky-bottom: #17321f; --glass: rgba(18, 56, 34, 0.55); --edge: rgba(200, 255, 210, 0.2); --pressed: rgba(60, 170, 90, 0.45); --panel: rgba(14, 42, 26, 0.92); --halo: 12, 36, 22; }
+  body.h-easter { --sky-glow: #7a8fd0; --sky-top: #1d2848; --sky-bottom: #2f2a4c; --glass: rgba(40, 46, 84, 0.55); --edge: rgba(230, 225, 255, 0.24); --pressed: rgba(150, 140, 230, 0.45); --panel: rgba(30, 34, 64, 0.92); --halo: 24, 28, 54; }
+  /* Blur behind glass is expensive on phones: plain translucent panels instead. */
+  @media (pointer: coarse) { button, #drawer, .occasion, .weather { backdrop-filter: none; } #drawer { background: var(--panel); } }
+  @media (max-width: 640px) { header { padding: 12px 16px; gap: 10px; } .spacer { display: none; } .controls { width: 100%; } }
+  @media (max-width: 1399px) { .occasion .words, .weather .words { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); } .occasion, .weather { padding: 6px 9px; } }
+  .weather { font: 700 13px/1 var(--body); color: var(--moon); padding: 6px 12px; border-radius: 999px; background: var(--glass); border: 1px solid var(--edge); }
+  .occasion { font: 700 13px/1 var(--body); color: var(--gold); padding: 6px 12px; border-radius: 999px; background: var(--glass); border: 1px solid var(--edge); }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; }
+  body {
+    background: radial-gradient(120% 90% at 50% 0%, var(--sky-glow) 0%, var(--sky-top) 45%, var(--sky-bottom) 100%);
+    background-color: var(--sky-top);
+    color: var(--moon);
+    font: 15px/1.5 var(--body);
+    overflow: hidden;
+    -webkit-font-smoothing: antialiased;
+  }
+  #sky { position: fixed; inset: 0; width: 100%; height: 100%; display: block; transition: filter 2s ease; }
+  body.sleep #sky { filter: brightness(0.62) saturate(1.1); }
+
+  /* ---------- chrome ---------- */
+  header {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 5;
+    display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
+    padding: 16px 20px;
+    transition: opacity 1.5s ease;
+  }
+  h1 { font: 700 22px/1.1 var(--name); margin: 0; letter-spacing: -0.01em; }
+  h1 span { font-weight: 500; color: var(--moon-dim); font-size: 15px; margin-left: 8px; }
+  .status { display: inline-flex; align-items: center; gap: 8px; color: var(--moon-dim); font-size: 13px; }
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--moon-dim); }
+  .status.live .dot { background: var(--mint); box-shadow: 0 0 10px var(--mint); }
+  .status.demo .dot { background: var(--gold); box-shadow: 0 0 10px var(--gold); }
+  .status.down .dot { background: var(--ember); }
+  .spacer { flex: 1; }
+  .controls { display: flex; gap: 8px; }
+  button {
+    font: 700 13px/1 var(--body); color: var(--moon);
+    background: var(--glass); border: 1px solid var(--edge); border-radius: 999px;
+    padding: 9px 14px; cursor: pointer; backdrop-filter: blur(8px);
+  }
+  button:hover { border-color: rgba(220, 205, 255, 0.45); }
+  button[aria-pressed="true"] { background: var(--pressed); }
+  button:focus-visible, .mind:focus-visible { outline: 2px solid var(--gold); outline-offset: 3px; }
+
+  /* ---------- labels drawn over the canvas ---------- */
+  #labels { position: fixed; inset: 0; pointer-events: none; z-index: 2; }
+  .mind {
+    position: absolute; left: 0; top: 0; width: 220px; margin-left: -110px;
+    text-align: center; pointer-events: auto; cursor: pointer; border-radius: 12px; padding: 4px;
+    transition: opacity 1.2s ease;
+  }
+  .mind:hover .name { text-decoration: underline; text-underline-offset: 4px; }
+  .mind .name { font: 700 18px/1.1 var(--name); color: var(--hue); text-shadow: 0 0 18px var(--hue-glow); }
+  .mind .meta { font-size: 12px; color: var(--moon-dim); margin-top: 2px; }
+  .mind .level { color: var(--moon); }
+  .mind .thought {
+    font-size: 13px; line-height: 1.4; color: var(--moon); opacity: 0.85; margin-top: 6px;
+    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+    min-height: 2.8em;
+  }
+  .mind .bars { display: none; gap: 6px; justify-content: center; margin-top: 6px; }
+  .bar { width: 64px; height: 5px; border-radius: 3px; background: rgba(255, 255, 255, 0.12); overflow: hidden; }
+  .bar i { display: block; height: 100%; border-radius: 3px; transition: width 1s ease; }
+  .bar.hp i { background: #ff7a9c; }
+  .bar.food i { background: #ffc46e; }
+  .mind .doing { display: none; font-size: 12px; color: var(--moon-dim); margin-top: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  body.grid .mind .bars { display: flex; }
+  body.grid .mind .doing { display: block; }
+  .mind.offline { opacity: 0.45; }
+  body.sleep .mind .meta, body.sleep .mind .thought, body.sleep .mind .bars, body.sleep .mind .doing { display: none; }
+  body.sleep .mind .name { font-size: 15px; opacity: 0.7; }
+
+  /* ---------- what's happening now: the latest thought, then a short stream ---------- */
+  #now {
+    position: fixed; z-index: 3; left: 50%; top: 50%; width: min(480px, 46vw);
+    transform: translate(-50%, -50%); text-align: center; transition: opacity 1.5s ease;
+    pointer-events: none;
+  }
+  #now::before {
+    content: ''; position: absolute; inset: -50px -70px; z-index: -1;
+    background: radial-gradient(closest-side, rgba(var(--halo), 0.8), rgba(var(--halo), 0));
+  }
+  body.grid #now::before { display: none; }
+  #now .who { font: 700 15px/1.2 var(--name); color: var(--c, var(--moon-dim)); margin: 0 0 8px; min-height: 1.2em; }
+  #now .said {
+    font: 500 clamp(19px, 2.1vw, 28px)/1.3 var(--name); letter-spacing: -0.01em; margin: 0;
+    color: var(--moon); text-wrap: balance; transition: opacity 0.8s ease;
+  }
+  #now .said.fade { opacity: 0; }
+  #stream {
+    list-style: none; margin: 22px 0 0; padding: 0; display: flex; flex-direction: column; gap: 4px;
+    font-size: 13.5px; line-height: 1.4;
+    mask-image: linear-gradient(to top, #000 55%, transparent);
+    -webkit-mask-image: linear-gradient(to top, #000 55%, transparent);
+  }
+  body.grid #now {
+    left: auto; right: 20px; top: auto; bottom: 20px; transform: none; text-align: left; width: 340px;
+  }
+  body.grid #now .said { font-size: 19px; }
+  @media (max-width: 1099px) { body.grid #now { display: none; } }
+  #stream li { color: var(--moon-dim); animation: rise 0.6s ease both; }
+  #stream li b { color: var(--c, var(--moon)); font-weight: 700; }
+  #stream li q { color: var(--moon); quotes: '“' '”'; }
+  @keyframes rise { from { opacity: 0; transform: translateY(6px); } }
+  body.sleep header, body.sleep #stream { opacity: 0; pointer-events: none; }
+  body.sleep #now { opacity: 0.55; }
+  body.constellation .mind .thought { display: none; }
+  body.sleep.peek header { opacity: 1; pointer-events: auto; }
+
+  /* ---------- focus drawer ---------- */
+  #drawer {
+    position: fixed; top: 0; right: 0; bottom: 0; z-index: 6; width: min(380px, 100vw);
+    background: var(--panel); border-left: 1px solid var(--edge); backdrop-filter: blur(14px);
+    padding: 22px 22px 40px; overflow-y: auto; transform: translateX(105%); transition: transform 0.45s ease;
+  }
+  #drawer.open { transform: none; }
+  #drawer h2 { font: 700 28px/1.1 var(--name); margin: 0; color: var(--hue); }
+  #drawer .role { color: var(--moon-dim); margin: 4px 0 14px; }
+  #drawer h3 { font: 700 15px/1.2 var(--name); margin: 20px 0 8px; color: var(--moon); }
+  #drawer p { margin: 0; }
+  #drawer ul { margin: 0; padding-left: 18px; }
+  #drawer li { margin: 3px 0; }
+  #drawer .close { position: absolute; top: 16px; right: 16px; }
+  .skill-row { display: grid; grid-template-columns: 1fr auto; gap: 8px; font-size: 13.5px; padding: 3px 0; }
+  .skill-row span:last-child { color: var(--moon-dim); }
+  .muted { color: var(--moon-dim); }
+
+  @media (max-width: 640px) {
+    header { padding: 12px 14px; gap: 10px; }
+    h1 { font-size: 19px; }
+    h1 span { display: none; }
+    .status { font-size: 12px; }
+    .controls { margin-left: auto; }
+    button { padding: 8px 11px; }
+    .mind { width: 130px; margin-left: -65px; }
+    .mind .name { font-size: 15px; }
+    .mind .thought, .mind .role { display: none; }
+    #now { width: 52vw; }
+    #now .said { font-size: 15px; }
+    #stream { display: none; }
+  }
+</style>
+</head>
+<body class="constellation">
+<canvas id="sky" aria-hidden="true"></canvas>
+<header>
+  <h1>Village minds <span>click a villager to look inside its brain</span></h1>
+  <div class="status" id="status" role="status"><span class="dot"></span><span id="status-text">Connecting…</span></div>
+  <div class="occasion" id="occasion" hidden></div>
+  <div class="weather" id="weather" hidden></div>
+  <div class="spacer"></div>
+  <div class="controls">
+    <button id="view-btn" type="button" aria-pressed="false" title="Switch between constellation and grid (G)">Grid view</button>
+    <button id="sleep-btn" type="button" aria-pressed="false" title="Dim, hide text and keep the screen on (S)">Sleep mode</button>
+  </div>
+</header>
+<div id="labels"></div>
+<section id="now" aria-live="polite">
+  <p class="who" id="now-who"></p>
+  <p class="said" id="now-said"></p>
+  <ul id="stream"></ul>
+</section>
+<aside id="drawer" aria-hidden="true">
+  <button class="close" type="button" id="drawer-close">Close</button>
+  <div id="drawer-body"></div>
+</aside>
+
+<script>
+(() => {
+  'use strict';
+
+  // ------------------------------------------------------------------ setup
+  const params = new URLSearchParams(location.search);
+  const TOKEN = params.get('token');
+  const FORCE_DEMO = params.has('demo');
+  const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  // Phones and tablets: lower resolution, 30 fps and fewer particles keep it smooth (?lowpower=0/1 to override).
+  const LOW_POWER = params.has('lowpower') ? params.get('lowpower') !== '0'
+    : matchMedia('(pointer: coarse)').matches || Math.min(screen.width, screen.height) < 820;
+  const canvas = document.getElementById('sky');
+  const ctx = canvas.getContext('2d');
+  const labelsEl = document.getElementById('labels');
+  const streamEl = document.getElementById('stream');
+  const statusEl = document.getElementById('status');
+  const statusText = document.getElementById('status-text');
+  let W = 0, H = 0, DPR = 1;
+
+  function resize() {
+    DPR = Math.min(window.devicePixelRatio || 1, LOW_POWER ? 1.25 : 2);
+    W = innerWidth; H = innerHeight;
+    canvas.width = W * DPR; canvas.height = H * DPR;
+    ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+    layout();
+  }
+
+  const hash = (s) => { let h = 2166136261; for (const c of String(s)) { h ^= c.charCodeAt(0); h = Math.imul(h, 16777619); } return (h >>> 0) / 4294967295; };
+  const lerp = (a, b, k) => a + (b - a) * k;
+  const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+  const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+
+  // ------------------------------------------------------------------ minds
+  const minds = new Map(); // name -> Mind
+  const order = [];
+
+  class Mind {
+    constructor(data, index) {
+      this.name = data.name;
+      this.index = index;
+      this.hue = (index * 137.508 + 195) % 360;
+      this.x = W / 2; this.y = H / 2; this.tx = this.x; this.ty = this.y; // centre (animated)
+      this.R = 40; this.tR = 40;
+      this.nodes = new Map();
+      this.pulses = [];
+      this.ripples = [];
+      this.sparks = [];
+      this.flash = 0; this.deathGlow = 0;
+      this.lastAct = null;
+      this.update(data);
+      this.makeLabel();
+    }
+    color(l = 66, a = 1, s = 92) { return `hsla(${this.hue}, ${s}%, ${l}%, ${a})`; }
+
+    update(d) {
+      for (const k of ['role', 'mode', 'thinking', 'online', 'health', 'food', 'activity', 'goal', 'last_plan', 'personality', 'position', 'directive']) {
+        if (d[k] !== undefined) this[k] = d[k];
+      }
+      if (d.notes) this.notes = d.notes.slice();
+      if (d.stats) this.stats = JSON.parse(JSON.stringify(d.stats));
+      this.notes ??= [];
+      this.stats ??= { actions: {}, links: {}, social: {}, thoughts: 0, deaths: 0, chats: 0 };
+      this.rebuild();
+    }
+
+    get xp() {
+      const s = this.stats;
+      let n = 0;
+      for (const a of Object.values(s.actions)) n += a.ok + a.fail * 0.5;
+      for (const v of Object.values(s.social)) n += v * 2;
+      return n + s.thoughts * 0.5 + this.notes.length * 4 + s.chats * 0.3;
+    }
+    get level() { return 1 + Math.floor(Math.sqrt(this.xp / 3)); }
+    get growth() { return 1 - Math.exp(-this.xp / 150); }
+
+    // Turn experience into neurons.
+    rebuild() {
+      const want = new Map();
+      want.set('core', { kind: 'core', label: this.name, weight: 1 });
+      if (this.goal) want.set('goal', { kind: 'goal', label: this.goal, weight: 1 });
+      for (const [name, a] of Object.entries(this.stats.actions)) {
+        want.set(`skill:${name}`, { kind: 'skill', label: name.replace(/_/g, ' '), weight: a.ok + a.fail, ok: a.ok, fail: a.fail });
+      }
+      this.notes.forEach((n, i) => want.set(`mem:${hash(n).toFixed(6)}`, { kind: 'memory', label: n, weight: 1 + i * 0.02 }));
+      for (const [who, c] of Object.entries(this.stats.social)) want.set(`soc:${who}`, { kind: 'social', label: who, weight: c });
+
+      for (const [id, spec] of want) {
+        let node = this.nodes.get(id);
+        if (!node) {
+          node = { id, ...spec, size: 0, glow: 1, phase: hash(id) * Math.PI * 2, born: performance.now(), x: this.x, y: this.y, angle: hash(id) * Math.PI * 2 };
+          this.nodes.set(id, node);
+          if (id !== 'core' && this.ready) this.ripples.push({ t: 0, x: 0, y: 0, color: spec.kind === 'memory' ? 'hsla(190, 95%, 75%, ' : 'hsla(45, 100%, 72%, ' , node });
+        } else Object.assign(node, spec);
+      }
+      for (const id of [...this.nodes.keys()]) if (!want.has(id)) this.nodes.get(id).dying = true;
+
+      // spread each ring evenly, ordered by a stable hash so neurons don't jump around
+      const rings = { skill: [], memory: [], social: [] };
+      for (const n of this.nodes.values()) if (rings[n.kind] && !n.dying) rings[n.kind].push(n);
+      const offsets = { skill: 0.2, memory: 1.3, social: 2.4 };
+      for (const [kind, list] of Object.entries(rings)) {
+        list.sort((a, b) => hash(a.id) - hash(b.id));
+        list.forEach((n, i) => { n.targetAngle = offsets[kind] + (i / Math.max(1, list.length)) * Math.PI * 2; });
+      }
+      this.ready = true;
+    }
+
+    nodeTargetSize(n) {
+      const r = this.R;
+      switch (n.kind) {
+        case 'core': return r * 0.17 * (this.thinking ? 1.12 : 1);
+        case 'goal': return r * 0.075;
+        case 'skill': return r * (0.035 + 0.022 * Math.log2(1 + n.weight));
+        case 'memory': return r * 0.03;
+        case 'social': return r * (0.03 + 0.012 * Math.log2(1 + n.weight));
+      }
+      return 3;
+    }
+    ringRadius(kind) {
+      return { core: 0, goal: 0.3, skill: 0.5, memory: 0.78, social: 0.98 }[kind] * this.R;
+    }
+
+    fire(fromId, toId, color, speed = 1) {
+      const a = this.nodes.get(fromId), b = this.nodes.get(toId);
+      if (!a || !b) return;
+      this.pulses.push({ a, b, t: 0, color, speed: speed * (reduceMotion ? 0.4 : 1) });
+    }
+
+    // ---- reactions to live events
+    onAct(name) {
+      const id = `skill:${name}`;
+      if (!this.nodes.has(id)) { this.stats.actions[name] ??= { ok: 0, fail: 0 }; this.rebuild(); }
+      this.fire('core', id, this.color(78), 0.8);
+      this.activeSkill = id;
+    }
+    onResult(name, ok) {
+      const a = (this.stats.actions[name] ??= { ok: 0, fail: 0 });
+      ok ? a.ok++ : a.fail++;
+      if (this.lastAct && this.lastAct !== name) {
+        const k = `${this.lastAct}>${name}`;
+        this.stats.links[k] = (this.stats.links[k] ?? 0) + 1;
+      }
+      this.lastAct = name;
+      this.rebuild();
+      const n = this.nodes.get(`skill:${name}`);
+      if (n) {
+        n.glow = 1.6;
+        n.result = ok ? 'ok' : 'fail'; n.resultAt = performance.now();
+        const c = ok ? 'hsla(150, 85%, 72%, ' : 'hsla(14, 100%, 70%, ';
+        for (let i = 0; i < (reduceMotion ? 3 : 9); i++) this.sparks.push({ node: n, a: Math.random() * 6.28, v: 0.6 + Math.random(), t: 0, c });
+      }
+      if (this.activeSkill === `skill:${name}`) this.activeSkill = null;
+    }
+    onThought() {
+      this.stats.thoughts++;
+      this.ripples.push({ t: 0, color: `hsla(${this.hue}, 95%, 78%, `, core: true });
+      const ids = [...this.nodes.keys()].filter((k) => k !== 'core');
+      for (let i = 0; i < Math.min(4, ids.length); i++) this.fire('core', ids[(Math.random() * ids.length) | 0], this.color(82), 0.6);
+      this.flash = 1;
+    }
+
+    makeLabel() {
+      const el = document.createElement('div');
+      el.className = 'mind';
+      el.tabIndex = 0;
+      el.setAttribute('role', 'button');
+      el.style.setProperty('--hue', this.color(76));
+      el.style.setProperty('--hue-glow', this.color(60, 0.6));
+      el.innerHTML = `<div class="name"></div><div class="meta"></div><div class="bars"><div class="bar hp" title="Health"><i></i></div><div class="bar food" title="Food"><i></i></div></div><div class="doing"></div><div class="thought"></div>`;
+      el.addEventListener('click', () => openBrain(this));
+      el.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openBrain(this); } });
+      labelsEl.appendChild(el);
+      this.label = el;
+      this.refreshLabel();
+    }
+    refreshLabel() {
+      const el = this.label;
+      el.querySelector('.name').textContent = this.name;
+      const mode = this.mode === 'autonomous' ? '' : `, ${this.mode}`;
+      el.querySelector('.meta').innerHTML = `<span class="role">${esc(this.role ?? '')}${esc(mode)} </span><span class="level">level ${this.level}</span>`;
+      el.querySelector('.hp i').style.width = `${clamp((this.health ?? 0) / 20, 0, 1) * 100}%`;
+      el.querySelector('.food i').style.width = `${clamp((this.food ?? 0) / 20, 0, 1) * 100}%`;
+      el.querySelector('.doing').textContent = this.online === false ? 'offline' : (this.thinking ? 'thinking…' : (this.activity ?? 'idle'));
+      el.querySelector('.thought').textContent = this.last_plan ?? '';
+      el.classList.toggle('offline', this.online === false);
+      el.setAttribute('aria-label', `${this.name}, ${this.role ?? ''}, level ${this.level}. Open full brain.`);
+    }
+
+    // ---- per-frame
+    step(dt, now) {
+      this.x = lerp(this.x, this.tx, 0.04);
+      this.y = lerp(this.y, this.ty, 0.04);
+      this.tR = this.baseR * (0.35 + 0.65 * this.growth);
+      this.R = lerp(this.R, this.tR, 0.03);
+      this.flash = Math.max(0, this.flash - dt * 0.0008);
+      this.deathGlow = Math.max(0, this.deathGlow - dt * 0.0003);
+      const drift = reduceMotion ? 0 : 1;
+      for (const n of this.nodes.values()) {
+        let px = 0, py = 0;
+        if (n.kind !== 'core') {
+          if (n.targetAngle !== undefined) {
+            let d = n.targetAngle - n.angle;
+            d = Math.atan2(Math.sin(d), Math.cos(d));
+            n.angle += d * 0.03;
+          }
+          const wobble = drift * Math.sin(now * 0.00025 + n.phase) * 0.06;
+          const rr = this.ringRadius(n.kind) * (1 + drift * 0.04 * Math.sin(now * 0.0004 + n.phase * 2));
+          const ang = n.angle + wobble + (n.kind === 'goal' ? -Math.PI / 2 - n.angle : 0) + now * 0.00002 * drift;
+          px = Math.cos(ang) * rr; py = Math.sin(ang) * rr * 0.86;
+        }
+        n.x = this.x + px; n.y = this.y + py;
+        const target = n.dying ? 0 : this.nodeTargetSize(n);
+        n.size = lerp(n.size, target, 0.06);
+        n.glow = lerp(n.glow, 1, 0.02);
+        if (n.dying && n.size < 0.3) this.nodes.delete(n.id);
+      }
+      this.pulses = this.pulses.filter((p) => (p.t += dt * 0.0011 * p.speed) < 1);
+      this.ripples = this.ripples.filter((r) => (r.t += dt * 0.0005) < 1);
+      this.sparks = this.sparks.filter((s) => (s.t += dt * 0.0012) < 1);
+
+      // Ambient firing so a quiet mind still looks alive. Busier when thinking.
+      const rate = (this.thinking ? 0.004 : 0.0007) * (this.online === false ? 0.2 : 1) * (reduceMotion ? 0.3 : 1);
+      if (Math.random() < rate * dt) {
+        const ids = [...this.nodes.keys()];
+        if (ids.length > 1) {
+          const links = Object.keys(this.stats.links);
+          if (links.length && Math.random() < 0.5) {
+            const [a, b] = links[(Math.random() * links.length) | 0].split('>');
+            this.fire(`skill:${a}`, `skill:${b}`, this.color(80, 1, 70), 0.5);
+          } else {
+            const pick = ids[(Math.random() * ids.length) | 0];
+            if (pick !== 'core') this.fire(Math.random() < 0.5 ? 'core' : pick, Math.random() < 0.5 ? pick : 'core', this.color(80, 1, 70), 0.45);
+          }
+        }
+      }
+    }
+
+    draw(now) {
+      const c = ctx;
+      const core = this.nodes.get('core');
+      if (!core) return;
+      const dim = this.online === false ? 0.35 : 1;
+
+      // nebula (a cached sprite per villager, breathing through its opacity)
+      if (!this.nebula) {
+        const s = document.createElement('canvas'), h = SPRITE_PX;
+        s.width = s.height = h * 2;
+        const g = s.getContext('2d').createRadialGradient(h, h, 0, h, h, h);
+        g.addColorStop(0, this.color(55, 1));
+        g.addColorStop(0.55, this.color(40, 0.28));
+        g.addColorStop(1, this.color(30, 0));
+        const sc = s.getContext('2d'); sc.fillStyle = g; sc.fillRect(0, 0, h * 2, h * 2);
+        this.nebula = s;
+      }
+      const breathe = 0.5 + 0.5 * Math.sin(now * (this.thinking ? 0.004 : 0.0012) + this.index);
+      const NR = this.R * 1.35;
+      c.globalAlpha = Math.min(1, (0.20 + 0.10 * breathe + this.flash * 0.15) * dim);
+      c.drawImage(this.nebula, this.x - NR, this.y - NR, NR * 2, NR * 2);
+      c.globalAlpha = 1;
+      if (this.deathGlow > 0) {
+        c.fillStyle = `hsla(0, 90%, 55%, ${this.deathGlow * 0.25})`;
+        c.beginPath(); c.arc(this.x, this.y, this.R * 1.1, 0, Math.PI * 2); c.fill();
+      }
+
+      c.globalCompositeOperation = 'lighter';
+
+      // synapses
+      c.lineCap = 'round';
+      for (const n of this.nodes.values()) {
+        if (n.kind === 'core' || n.size < 0.5) continue;
+        const w = n.kind === 'skill' ? 0.6 + Math.log2(1 + n.weight) * 0.35 : 0.6;
+        curve(core, n, this.color(70, (n.kind === 'memory' ? 0.10 : 0.16) * dim), w, n.phase);
+      }
+      for (const [k, v] of Object.entries(this.stats.links)) {
+        const [a, b] = k.split('>');
+        const na = this.nodes.get(`skill:${a}`), nb = this.nodes.get(`skill:${b}`);
+        if (na && nb) curve(na, nb, this.color(80, Math.min(0.32, 0.06 + v * 0.03) * dim, 70), 0.5 + Math.log2(1 + v) * 0.5, hash(k) * 6);
+      }
+      // memories hang off the skill closest to them
+      const skills = [...this.nodes.values()].filter((n) => n.kind === 'skill');
+      if (skills.length) for (const n of this.nodes.values()) if (n.kind === 'memory') {
+        const s = skills[Math.floor(hash(n.id) * skills.length)];
+        curve(s, n, `hsla(190, 90%, 75%, ${0.09 * dim})`, 0.6, n.phase);
+      }
+
+      // pulses
+      for (const p of this.pulses) {
+        const { x, y } = curvePoint(p.a, p.b, p.t, p.a.phase ?? 0);
+        glowDot(x, y, 3 + 2 * Math.sin(p.t * Math.PI), p.color.replace(/[\d.]+\)$/, '1)'), 14);
+      }
+
+      // neurons
+      for (const n of this.nodes.values()) {
+        if (n.size < 0.3) continue;
+        let col, halo = 2.6;
+        if (n.kind === 'core') { col = this.color(80, dim); halo = 3.2; }
+        else if (n.kind === 'goal') col = `hsla(45, 100%, 72%, ${dim})`;
+        else if (n.kind === 'memory') col = `hsla(190, 95%, 78%, ${dim})`;
+        else if (n.kind === 'social') col = `hsla(325, 90%, 78%, ${dim})`;
+        else {
+          const rate = n.ok / Math.max(1, n.ok + n.fail);
+          col = this.color(60 + rate * 20, dim, 70 + rate * 25);
+        }
+        const twinkle = n.kind === 'memory' && !reduceMotion ? 0.75 + 0.25 * Math.sin(now * 0.003 + n.phase * 3) : 1;
+        const active = this.activeSkill === n.id ? 1.4 + 0.3 * Math.sin(now * 0.008) : 1;
+        glowDot(n.x, n.y, n.size * n.glow * active, col, n.size * halo * n.glow * active, twinkle);
+        if (n.result && now - n.resultAt < 1600) {
+          const k = (now - n.resultAt) / 1600;
+          c.strokeStyle = n.result === 'ok' ? `hsla(150, 85%, 72%, ${0.7 * (1 - k)})` : `hsla(14, 100%, 70%, ${0.7 * (1 - k)})`;
+          c.lineWidth = 1.5;
+          c.beginPath(); c.arc(n.x, n.y, n.size * (1.5 + k * 3), 0, Math.PI * 2); c.stroke();
+        }
+      }
+      // orbiting thought sparks while the model is thinking
+      if (this.thinking && !reduceMotion) {
+        for (let i = 0; i < 3; i++) {
+          const a = now * 0.003 + (i * Math.PI * 2) / 3;
+          glowDot(core.x + Math.cos(a) * core.size * 2.2, core.y + Math.sin(a) * core.size * 2.2, 2, this.color(88), 10);
+        }
+      }
+      // births and thoughts
+      for (const r of this.ripples) {
+        const base = r.core ? core : r.node;
+        if (!base) continue;
+        const rad = r.core ? this.R * 0.2 + r.t * this.R * 0.9 : base.size + r.t * this.R * 0.25;
+        c.strokeStyle = `${r.color}${(1 - r.t) * 0.55})`;
+        c.lineWidth = 1.5 * (1 - r.t) + 0.3;
+        c.beginPath(); c.arc(base.x, base.y, rad, 0, Math.PI * 2); c.stroke();
+      }
+      for (const s of this.sparks) {
+        const d = s.t * s.v * this.R * 0.18;
+        glowDot(s.node.x + Math.cos(s.a) * d, s.node.y + Math.sin(s.a) * d, 1.6 * (1 - s.t), `${s.c}${1 - s.t})`, 6);
+      }
+      c.globalCompositeOperation = 'source-over';
+    }
+  }
+
+  function curvePoint(a, b, t, phase) {
+    const mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2;
+    const dx = b.x - a.x, dy = b.y - a.y;
+    const bend = 0.18 * Math.sin(phase);
+    const cx = mx - dy * bend, cy = my + dx * bend;
+    const u = 1 - t;
+    return { x: u * u * a.x + 2 * u * t * cx + t * t * b.x, y: u * u * a.y + 2 * u * t * cy + t * t * b.y, cx, cy };
+  }
+  function curve(a, b, color, width, phase) {
+    const { cx, cy } = curvePoint(a, b, 0.5, phase);
+    ctx.strokeStyle = color; ctx.lineWidth = width;
+    ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.quadraticCurveTo(cx, cy, b.x, b.y); ctx.stroke();
+  }
+  // Glows are drawn from small pre-rendered sprites instead of a new gradient per dot per frame (thousands a
+  // frame with a big village, which is what made phones lag). The colour's alpha becomes globalAlpha, and
+  // colours are rounded, so a few hundred sprites cover everything.
+  const SPRITE_PX = LOW_POWER ? 32 : 64;
+  const sprites = new Map();
+  const ALPHA_COLOR = /^(hsla|rgba)\((.+),\s*([\d.]+)\)$/;
+  function splitAlpha(color) {
+    const m = ALPHA_COLOR.exec(color);
+    if (!m) return [color, 1];
+    return [`${m[1]}(${m[2].replace(/[\d.]+/g, (n) => Math.round(Number(n)))}, 1)`, Number(m[3])];
+  }
+  function glowSprite(color, ratio) {
+    const key = `${color}|${ratio}`;
+    let s = sprites.get(key);
+    if (!s) {
+      if (sprites.size > 1500) sprites.clear();
+      s = document.createElement('canvas');
+      s.width = s.height = SPRITE_PX;
+      const c = s.getContext('2d'), h = SPRITE_PX / 2;
+      const g = c.createRadialGradient(h, h, 0, h, h, h);
+      g.addColorStop(0, color);
+      if (ratio > 0) g.addColorStop(ratio, color);
+      g.addColorStop(1, 'rgba(0,0,0,0)');
+      c.fillStyle = g;
+      c.fillRect(0, 0, SPRITE_PX, SPRITE_PX);
+      sprites.set(key, s);
+    }
+    return s;
+  }
+  function glowDot(x, y, r, color, halo, alpha = 1) {
+    if (r <= 0) return;
+    const R = Math.max(halo, r * 1.5);
+    const [base, a] = splitAlpha(color);
+    if (a * alpha <= 0.003) return;
+    const ratio = Math.round(Math.min(0.95, r / R) * 20) / 20;
+    ctx.globalAlpha = Math.min(1, a * alpha);
+    ctx.drawImage(glowSprite(base, ratio), x - R, y - R, R * 2, R * 2);
+    ctx.globalAlpha = 1;
+  }
+
+  // ------------------------------------------------------------------ layout
+  let view = localStorage.getItem('vm-view') === 'grid' ? 'grid' : 'constellation';
+  function layout() {
+    const list = order.map((n) => minds.get(n)).filter(Boolean);
+    const N = list.length;
+    if (!N) return;
+    const top = (document.querySelector('header')?.offsetHeight ?? 70) + 8;
+    const bottom = view === 'grid' ? 16 : (W < 640 ? 40 : 58); // leave room for the bottom villager's name
+    const h = H - top - bottom;
+    const nowEl = document.getElementById('now');
+    if (view === 'grid') {
+      const side = W >= 1100 ? 380 : 0; // room for the stream on wide screens
+      const usable = W - side;
+      const maxCols = W < 640 ? 2 : W < 1000 ? 3 : 5;
+      const cols = Math.min(N, maxCols);
+      const rows = Math.ceil(N / cols);
+      const cw = usable / cols, ch = h / rows;
+      list.forEach((m, i) => {
+        const col = i % cols, row = Math.floor(i / cols);
+        m.tx = cw * (col + 0.5); m.ty = top + ch * row + ch * 0.4;
+        m.baseR = Math.min(cw * 0.46, ch * 0.36);
+        m.labelOffset = m.baseR * 1.05;
+      });
+    } else {
+      const narrow = W < 640;
+      const cx = W / 2, cy = top + h / 2 - (narrow ? 0 : 14);
+      const rx = W * (narrow ? 0.33 : 0.39), ry = h * (narrow ? 0.4 : 0.37);
+      const spacing = (Math.PI * (rx + ry)) / Math.max(N, 4);
+      list.forEach((m, i) => {
+        const a = (i / N) * Math.PI * 2 - Math.PI / 2;
+        m.tx = cx + Math.cos(a) * rx; m.ty = cy + Math.sin(a) * ry;
+        m.baseR = Math.min(spacing * (narrow ? 0.4 : 0.4), h * 0.19);
+        m.labelOffset = m.baseR * 0.95;
+      });
+      nowEl.style.top = `${cy}px`;
+      nowEl.style.width = `${Math.min(rx * 1.2, 480)}px`;
+    }
+    document.body.classList.toggle('grid', view === 'grid');
+    document.body.classList.toggle('constellation', view !== 'grid');
+    document.getElementById('view-btn').textContent = view === 'grid' ? 'Constellation view' : 'Grid view';
+  }
+
+  // ------------------------------------------------------------------ sky: seasons by day, stars by night
+  // Seasons by month (northern hemisphere); night from roughly UK sunset to sunrise for the month.
+  // Preview others with ?season=spring|summer|autumn|winter and/or ?night=1 / ?night=0.
+  const SEASON_BY_MONTH = ['winter', 'winter', 'spring', 'spring', 'spring', 'summer', 'summer', 'summer', 'autumn', 'autumn', 'autumn', 'winter'];
+  const DAYLIGHT = [[8, 16.25], [7.5, 17.25], [6.5, 18], [6.25, 19.75], [5.25, 20.5], [4.75, 21.25], [5, 21], [5.75, 20.25], [6.5, 19.25], [7.25, 18], [7.25, 16.5], [8, 16]];
+  const skyParams = new URLSearchParams(location.search);
+
+  // Special occasions (UK dates). Preview with ?occasion=halloween etc. (?occasion=none to switch off).
+  function easterSunday(y) { // anonymous Gregorian algorithm
+    const a = y % 19, b = Math.floor(y / 100), c = y % 100, d = Math.floor(b / 4), e = b % 4;
+    const f = Math.floor((b + 8) / 25), g = Math.floor((b - f + 1) / 3), h = (19 * a + b - d - g + 15) % 30;
+    const i = Math.floor(c / 4), k = c % 4, l = (32 + 2 * e + 2 * i - h - k) % 7, m = Math.floor((a + 11 * h + 22 * l) / 451);
+    const month = Math.floor((h + l - 7 * m + 114) / 31), day = ((h + l - 7 * m + 114) % 31) + 1;
+    return new Date(y, month - 1, day);
+  }
+  const OCCASIONS = [
+    { id: 'halloween', label: '🎃 Happy Halloween', when: (m, d) => m === 9 && d >= 24 },
+    { id: 'bonfire', label: '🎆 Bonfire Night', when: (m, d) => m === 10 && d >= 4 && d <= 6 },
+    { id: 'christmas', label: '🎄 Merry Christmas', when: (m, d) => m === 11 && d <= 26 },
+    { id: 'newyear', label: '🥂 Happy New Year', when: (m, d) => (m === 11 && d === 31) || (m === 0 && d === 1) },
+    { id: 'valentine', label: "💕 Happy Valentine's Day", when: (m, d) => m === 1 && (d === 13 || d === 14) },
+    { id: 'stpatrick', label: "☘️ Happy St Patrick's Day", when: (m, d) => m === 2 && d === 17 },
+    { id: 'easter', label: '🐣 Happy Easter', when: (m, d, date) => { const e = easterSunday(date.getFullYear()); const diff = Math.round((new Date(date.getFullYear(), m, d) - e) / 86_400_000); return diff >= -2 && diff <= 1; } },
+  ];
+
+  let sky = { night: true, season: 'winter', occasion: null };
+  function updateSky() {
+    const d = new Date();
+    const hour = d.getHours() + d.getMinutes() / 60;
+    const [rise, set] = DAYLIGHT[d.getMonth()];
+    const season = SEASON_BY_MONTH.includes(skyParams.get('season')) ? skyParams.get('season') : SEASON_BY_MONTH[d.getMonth()];
+    const night = skyParams.has('night') ? skyParams.get('night') !== '0' : hour < rise || hour >= set;
+    const forced = skyParams.get('occasion');
+    const occasion = forced ? OCCASIONS.find((o) => o.id === forced) ?? null : OCCASIONS.find((o) => o.when(d.getMonth(), d.getDate(), d)) ?? null;
+    sky = { night, season, occasion };
+    for (const s of ['spring', 'summer', 'autumn', 'winter']) document.body.classList.toggle(s, !night && !occasion && s === season);
+    for (const o of OCCASIONS) document.body.classList.toggle(`h-${o.id}`, !night && o === occasion);
+    setBadge(document.getElementById('occasion'), occasion?.label);
+  }
+  /** A header badge: emoji + words (only the emoji on narrow screens; the words are the tooltip). */
+  function setBadge(el, label) {
+    el.hidden = !label;
+    if (!label) return;
+    const [icon, ...words] = label.split(' ');
+    el.title = words.join(' ');
+    el.innerHTML = `<span aria-hidden="true">${esc(icon)}</span><span class="words"> ${esc(words.join(' '))}</span>`;
+  }
+  updateSky();
+  setInterval(() => { updateSky(); updateWeather(); }, 60_000);
+
+  const stars = Array.from({ length: LOW_POWER ? 80 : 140 }, () => ({ x: Math.random(), y: Math.random(), r: Math.random() * 1.2 + 0.2, p: Math.random() * 6.28 }));
+  // Daytime drifters: snow, blossom, sunny motes, leaves. Positions are worked out from the time, so no state.
+  const drifters = Array.from({ length: LOW_POWER ? 36 : 70 }, () => ({ x: Math.random(), y: Math.random(), r: Math.random(), p: Math.random() * 6.28, v: 0.6 + Math.random() * 0.8 }));
+  const SEASON_LOOK = {
+    winter: { fall: 0.000004, colors: ['rgba(200, 225, 255, A)', 'rgba(235, 245, 255, A)'], shape: 'mote', count: 24 }, // frost glints (the snow is weather)
+    spring: { fall: 0.000022, colors: ['rgba(255, 190, 215, A)', 'rgba(255, 228, 238, A)', 'rgba(200, 240, 200, A)'], shape: 'petal' },
+    summer: { fall: -0.000008, colors: ['rgba(255, 220, 120, A)', 'rgba(255, 245, 190, A)'], shape: 'mote' },
+    autumn: { fall: 0.000026, colors: ['rgba(240, 130, 50, A)', 'rgba(210, 70, 40, A)', 'rgba(250, 190, 70, A)', 'rgba(170, 100, 50, A)'], shape: 'leaf' },
+  };
+  // What each occasion draws by day, and over the stars at night. fireworks: bursts on top.
+  const OCCASION_LOOK = {
+    halloween: { day: { fall: -0.000012, colors: ['rgba(20, 8, 24, A)', 'rgba(40, 14, 40, A)'], shape: 'bat', extra: { colors: ['rgba(255, 140, 30, A)'], shape: 'pumpkin', every: 5 } },
+      night: { fall: -0.000012, colors: ['rgba(10, 4, 14, A)'], shape: 'bat', count: 18 } },
+    bonfire: { day: { fall: -0.00001, colors: ['rgba(255, 170, 60, A)', 'rgba(255, 110, 40, A)'], shape: 'mote' }, fireworks: true },
+    // (the Christmas snow is weather: these are the fairy lights)
+    christmas: { day: { fall: 0.000004, colors: ['rgba(255, 70, 70, A)', 'rgba(90, 230, 120, A)', 'rgba(255, 210, 90, A)'], shape: 'light', count: 30 },
+      night: { fall: 0.000004, colors: ['rgba(255, 70, 70, A)', 'rgba(90, 230, 120, A)', 'rgba(255, 210, 90, A)', 'rgba(120, 170, 255, A)'], shape: 'light', count: 24 } },
+    newyear: { day: { fall: -0.000008, colors: ['rgba(255, 220, 120, A)', 'rgba(220, 200, 255, A)'], shape: 'mote' }, fireworks: true },
+    valentine: { day: { fall: -0.000014, colors: ['rgba(255, 110, 160, A)', 'rgba(255, 170, 200, A)', 'rgba(230, 60, 100, A)'], shape: 'heart' },
+      night: { fall: -0.000014, colors: ['rgba(255, 120, 170, A)'], shape: 'heart', count: 16 } },
+    stpatrick: { day: { fall: 0.00002, colors: ['rgba(90, 210, 110, A)', 'rgba(150, 240, 150, A)', 'rgba(255, 215, 90, A)'], shape: 'clover' } },
+    easter: { day: { fall: 0.000016, colors: ['rgba(255, 200, 220, A)', 'rgba(190, 220, 255, A)', 'rgba(255, 240, 170, A)', 'rgba(200, 245, 200, A)'], shape: 'egg' } },
+  };
+
+  function drawShape(shape, color, s, t, now) {
+    if (shape === 'flake') {
+      ctx.fillStyle = color.replace('A', 0.35 + s.r * 0.45);
+      ctx.beginPath(); ctx.arc(0, 0, 1 + s.r * 2.2, 0, Math.PI * 2); ctx.fill();
+    } else if (shape === 'mote' || shape === 'light') {
+      const a = (shape === 'light' ? 0.45 : 0.2) + 0.4 * (reduceMotion ? 0.5 : 0.5 + 0.5 * Math.sin(now * 0.002 * s.v + s.p));
+      const r = shape === 'light' ? 4 + s.r * 3 : 3 + s.r * 5;
+      ctx.globalCompositeOperation = 'lighter';
+      ctx.globalAlpha = a;
+      ctx.drawImage(glowSprite(color.replace('A', 1), 0), -r, -r, r * 2, r * 2);
+    } else if (shape === 'bat') {
+      const size = 5 + s.r * 6, flap = reduceMotion ? 0.6 : Math.sin(t * 0.012 * s.v + s.p);
+      ctx.fillStyle = color.replace('A', 0.85);
+      ctx.beginPath();
+      ctx.moveTo(0, 0);
+      ctx.quadraticCurveTo(-size * 0.6, -size * flap, -size * 1.4, -size * 0.2 * flap);
+      ctx.quadraticCurveTo(-size * 0.7, size * 0.1, 0, size * 0.25);
+      ctx.quadraticCurveTo(size * 0.7, size * 0.1, size * 1.4, -size * 0.2 * flap);
+      ctx.quadraticCurveTo(size * 0.6, -size * flap, 0, 0);
+      ctx.fill();
+    } else if (shape === 'pumpkin') {
+      const r = 5 + s.r * 4;
+      ctx.fillStyle = color.replace('A', 0.85);
+      for (const dx of [-0.45, 0, 0.45]) { ctx.beginPath(); ctx.ellipse(dx * r, 0, r * 0.6, r * 0.8, 0, 0, Math.PI * 2); ctx.fill(); }
+      ctx.fillStyle = 'rgba(70, 120, 40, 0.9)';
+      ctx.fillRect(-r * 0.1, -r * 1.05, r * 0.2, r * 0.35);
+    } else if (shape === 'heart') {
+      const r = 4 + s.r * 4;
+      ctx.rotate(Math.sin(t * 0.001 * s.v + s.p) * 0.3);
+      ctx.fillStyle = color.replace('A', 0.7);
+      ctx.beginPath();
+      ctx.moveTo(0, r * 0.35);
+      ctx.bezierCurveTo(-r * 1.2, -r * 0.5, -r * 0.4, -r * 1.1, 0, -r * 0.4);
+      ctx.bezierCurveTo(r * 0.4, -r * 1.1, r * 1.2, -r * 0.5, 0, r * 0.35);
+      ctx.fill();
+    } else if (shape === 'clover') {
+      const r = 2.5 + s.r * 2.5;
+      ctx.rotate(s.p + t * 0.0008 * s.v);
+      ctx.fillStyle = color.replace('A', 0.75);
+      for (let k = 0; k < 3; k++) { const a = k * 2.094; ctx.beginPath(); ctx.arc(Math.cos(a) * r, Math.sin(a) * r, r, 0, Math.PI * 2); ctx.fill(); }
+    } else if (shape === 'egg') {
+      const r = 4 + s.r * 3;
+      ctx.rotate(Math.sin(t * 0.0015 * s.v + s.p) * 0.4);
+      ctx.fillStyle = color.replace('A', 0.8);
+      ctx.beginPath(); ctx.ellipse(0, 0, r * 0.75, r, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.55)'; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(-r * 0.7, 0); ctx.lineTo(r * 0.7, 0); ctx.stroke();
+    } else {
+      // petals and leaves tumble as they fall
+      ctx.rotate(s.p + t * 0.0012 * s.v);
+      ctx.scale(1, 0.55 + 0.45 * Math.sin(t * 0.002 * s.v + s.p));
+      const size = shape === 'leaf' ? 4 + s.r * 4 : 2.5 + s.r * 2.5;
+      ctx.fillStyle = color.replace('A', shape === 'leaf' ? 0.75 : 0.65);
+      ctx.beginPath(); ctx.ellipse(0, 0, size, size * 0.5, 0, 0, Math.PI * 2); ctx.fill();
+    }
+  }
+
+  // Fireworks: a few bursts at a time, each placed and coloured from its time slot (no state to keep).
+  const BURST_COLORS = ['255, 120, 120', '255, 210, 110', '140, 220, 255', '190, 150, 255', '150, 255, 170', '255, 160, 230'];
+  function drawFireworks(now) {
+    const period = 2600;
+    ctx.globalCompositeOperation = 'lighter';
+    for (let k = 0; k < 3; k++) {
+      const tt = now + k * (period / 3);
+      const slot = Math.floor(tt / period), phase = reduceMotion ? 0.6 : (tt % period) / period;
+      const rnd = (n) => { const x = Math.sin(slot * 12.9898 + k * 78.233 + n * 37.719) * 43758.5453; return x - Math.floor(x); };
+      const cx = (0.15 + rnd(1) * 0.7) * W, cy = (0.12 + rnd(2) * 0.4) * H;
+      const color = BURST_COLORS[Math.floor(rnd(3) * BURST_COLORS.length)];
+      const radius = (40 + rnd(4) * 60) * Math.sqrt(phase), fade = Math.max(0, 1 - phase);
+      for (let i = 0; i < 28; i++) {
+        const a = (i / 28) * Math.PI * 2;
+        const x = cx + Math.cos(a) * radius, y = cy + Math.sin(a) * radius + phase * phase * 25;
+        ctx.fillStyle = `rgba(${color}, ${0.85 * fade})`;
+        ctx.beginPath(); ctx.arc(x, y, 1.6, 0, Math.PI * 2); ctx.fill();
+      }
+    }
+    ctx.globalCompositeOperation = 'source-over';
+  }
+
+  // ------------------------------------------------------------------ weather to suit the time of year
+  // Snow at Christmas, fog at Halloween, showers in spring... drawn over the sky by day and night.
+  // Preview with ?weather=snow|heavysnow|fog|mist|smoke|showers|sun|none.
+  const WEATHER_LABEL = {
+    snow: '🌨️ Light snow', heavysnow: '❄️ Snowing', fog: '☁️ Foggy', mist: '☁️ Misty',
+    smoke: '💨 Bonfire smoke', showers: '🌦️ Sunshine and showers', sun: '☀️ Sunny',
+  };
+  const SEASON_WEATHER = { winter: 'snow', spring: 'showers', summer: 'sun', autumn: 'mist' };
+  const OCCASION_WEATHER = { halloween: 'fog', christmas: 'heavysnow', bonfire: 'smoke', newyear: 'snow', stpatrick: 'showers', easter: 'showers' };
+  function currentWeather() {
+    const forced = skyParams.get('weather');
+    if (forced) return WEATHER_LABEL[forced] ? forced : null;
+    const w = OCCASION_WEATHER[sky.occasion?.id] ?? SEASON_WEATHER[sky.season];
+    return w === 'sun' && sky.night ? null : w; // no sunbeams at night
+  }
+  let weather = null;
+  function updateWeather() {
+    weather = currentWeather();
+    setBadge(document.getElementById('weather'), WEATHER_LABEL[weather]);
+  }
+
+  // Snow in three depths (far = small and slow): one path per depth, so even heavy snow is cheap.
+  const flakes = Array.from({ length: LOW_POWER ? 90 : 180 }, (_, i) => ({ x: Math.random(), y: Math.random(), d: i % 3, p: Math.random() * 6.28, v: 0.8 + Math.random() * 0.4 }));
+  const FLAKE_DEPTH = [{ r: 0.9, fall: 0.000035, a: 0.45 }, { r: 1.6, fall: 0.00006, a: 0.7 }, { r: 2.6, fall: 0.00009, a: 0.9 }];
+  function drawSnow(now, heavy) {
+    const t = reduceMotion ? 0 : now;
+    const n = heavy ? flakes.length : Math.round(flakes.length * 0.45);
+    for (let d = 0; d < 3; d++) {
+      const L = FLAKE_DEPTH[d];
+      ctx.fillStyle = `rgba(245, 248, 255, ${L.a})`;
+      ctx.beginPath();
+      for (let i = d; i < n; i += 3) {
+        const f = flakes[i];
+        const y = ((f.y + t * L.fall * f.v) % 1) * (H + 10) - 5;
+        const x = (((f.x + Math.sin(t * 0.0006 * f.v + f.p) * 0.012 + t * 0.000004 * (d + 1)) % 1) + 1) % 1 * W;
+        ctx.moveTo(x + L.r, y); ctx.arc(x, y, L.r, 0, Math.PI * 2);
+      }
+      ctx.fill();
+    }
+    if (heavy) {
+      // snow settling: a soft white glow along the bottom
+      const g = ctx.createLinearGradient(0, H * 0.82, 0, H);
+      g.addColorStop(0, 'rgba(235, 242, 255, 0)'); g.addColorStop(1, 'rgba(235, 242, 255, 0.16)');
+      ctx.fillStyle = g; ctx.fillRect(0, H * 0.82, W, H * 0.18);
+    }
+  }
+
+  // Fog, mist and smoke: one soft cloud texture, made once, drifting across in layers.
+  let fogTexture = null;
+  function fogTex() {
+    if (fogTexture) return fogTexture;
+    const c = document.createElement('canvas');
+    c.width = 512; c.height = 256;
+    const g = c.getContext('2d');
+    // Blobs stay well inside the texture's height, so the bands have no hard top or bottom edge.
+    for (let i = 0; i < 22; i++) {
+      const x = (i / 22) * 512 + Math.random() * 30, y = 128 + (Math.random() - 0.5) * 50, r = 45 + Math.random() * 50;
+      for (const dx of [-512, 0, 512]) { // drawn wrapped so the texture tiles seamlessly
+        const rg = g.createRadialGradient(x + dx, y, 0, x + dx, y, r);
+        rg.addColorStop(0, 'rgba(255, 255, 255, 0.55)'); rg.addColorStop(1, 'rgba(255, 255, 255, 0)');
+        g.fillStyle = rg; g.fillRect(x + dx - r, y - r, r * 2, r * 2);
+      }
+    }
+    fogTexture = c;
+    return c;
+  }
+  const FOG_STYLE = {
+    // layers: [top of band (0-1 of height), band height, alpha, speed px/s]
+    fog: { tint: 'rgba(20, 26, 22, 0.22)', layers: [[0.05, 0.6, 0.18, 9], [0.3, 0.6, 0.24, -14], [0.55, 0.55, 0.3, 20]] },
+    mist: { tint: null, layers: [[0.6, 0.4, 0.16, 7], [0.72, 0.32, 0.2, -11]] },
+    smoke: { tint: 'rgba(30, 18, 12, 0.16)', layers: [[0.05, 0.6, 0.16, 16], [0.35, 0.6, 0.2, 24]], rise: 6 },
+  };
+  function drawFog(now, style) {
+    const s = FOG_STYLE[style];
+    if (s.tint) { ctx.fillStyle = s.tint; ctx.fillRect(0, 0, W, H); }
+    const tex = fogTex(), t = reduceMotion ? 0 : now / 1000;
+    for (const [top, height, alpha, speed] of s.layers) {
+      const h = H * height, w = h * 2; // keep the texture's 2:1 shape
+      const y = H * top - (s.rise ? (t * s.rise) % (H * 0.15) : 0);
+      let x = -(((t * speed) % w) + w) % w;
+      ctx.globalAlpha = alpha;
+      for (; x < W; x += w) ctx.drawImage(tex, x, y, w, h);
+    }
+    ctx.globalAlpha = 1;
+  }
+
+  // Showers: rain that comes and goes (about a minute of rain in every three).
+  const drops = Array.from({ length: LOW_POWER ? 70 : 140 }, () => ({ x: Math.random(), y: Math.random(), v: 0.7 + Math.random() * 0.6, len: 8 + Math.random() * 10 }));
+  function drawShowers(now) {
+    const t = reduceMotion ? 0 : now;
+    const cycle = Math.sin((now / 180_000) * Math.PI * 2);
+    const rain = reduceMotion ? 0.5 : Math.max(0, Math.min(1, (cycle - 0.35) * 2.5));
+    if (rain <= 0) return;
+    ctx.fillStyle = `rgba(14, 18, 28, ${0.22 * rain})`;
+    ctx.fillRect(0, 0, W, H);
+    ctx.strokeStyle = `rgba(185, 205, 240, ${0.36 * rain})`;
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    for (const d of drops.slice(0, Math.ceil(drops.length * rain))) {
+      const y = ((d.y + t * 0.0012 * d.v) % 1) * (H + 40) - 20;
+      const x = ((d.x + y / H * 0.06) % 1) * W;
+      ctx.moveTo(x, y); ctx.lineTo(x - d.len * 0.25, y - d.len);
+    }
+    ctx.stroke();
+  }
+
+  // Sun: a few soft beams from the top corner, gently swaying.
+  function drawSun(now) {
+    const t = reduceMotion ? 0 : now;
+    ctx.globalCompositeOperation = 'lighter';
+    for (let i = 0; i < 4; i++) {
+      const a = 0.35 + i * 0.22 + Math.sin(t * 0.00015 + i * 1.7) * 0.04;
+      const len = Math.hypot(W, H) * 1.1, spread = 0.05 + i * 0.012;
+      const g = ctx.createLinearGradient(0, 0, Math.cos(a) * len, Math.sin(a) * len);
+      g.addColorStop(0, 'rgba(255, 236, 170, 0.07)'); g.addColorStop(1, 'rgba(255, 236, 170, 0)');
+      ctx.fillStyle = g;
+      ctx.beginPath(); ctx.moveTo(-20, -20);
+      ctx.lineTo(Math.cos(a - spread) * len, Math.sin(a - spread) * len);
+      ctx.lineTo(Math.cos(a + spread) * len, Math.sin(a + spread) * len);
+      ctx.fill();
+    }
+    ctx.globalCompositeOperation = 'source-over';
+  }
+
+  updateWeather();
+
+  function drawWeather(now) {
+    if (weather === 'snow' || weather === 'heavysnow') drawSnow(now, weather === 'heavysnow');
+    else if (weather === 'fog' || weather === 'mist' || weather === 'smoke') drawFog(now, weather);
+    else if (weather === 'showers') drawShowers(now);
+    else if (weather === 'sun') drawSun(now);
+  }
+
+  function drawDrifters(look, now) {
+    const t = reduceMotion ? 0 : now;
+    const n = look.count ?? drifters.length;
+    drifters.slice(0, n).forEach((s, i) => {
+      const y = (((s.y + t * look.fall * s.v) % 1) + 1) % 1;
+      const x = (((s.x + (look.shift ?? 0) + Math.sin(t * 0.0005 * s.v + s.p) * 0.015 + (look.shape === 'leaf' ? t * 0.000006 * s.v : 0)) % 1) + 1) % 1;
+      const px = x * W, py = y * H;
+      // An occasion can mix in a second kind every few drifters (pumpkins among the bats, lights in the snow).
+      const extra = look.extra && i % look.extra.every === 0;
+      const kind = extra ? look.extra : look;
+      ctx.save();
+      ctx.translate(px, py);
+      const ci = extra ? Math.floor(i / look.extra.every) : i;
+      drawShape(kind.shape, kind.colors[ci % kind.colors.length], s, t, now);
+      ctx.restore();
+    });
+  }
+
+  function drawSky(now) {
+    ctx.clearRect(0, 0, W, H);
+    const occ = sky.occasion && OCCASION_LOOK[sky.occasion.id];
+    if (sky.night) {
+      for (const s of stars) {
+        const a = 0.25 + 0.35 * (reduceMotion ? 0.5 : 0.5 + 0.5 * Math.sin(now * 0.0006 + s.p));
+        ctx.fillStyle = `rgba(230, 220, 255, ${a})`;
+        ctx.beginPath(); ctx.arc(s.x * W, s.y * H, s.r, 0, Math.PI * 2); ctx.fill();
+      }
+      if (occ?.night) drawDrifters(occ.night, now);
+    } else drawDrifters(occ?.day ?? SEASON_LOOK[sky.season], now);
+    drawWeather(now);
+    if (occ?.fireworks) drawFireworks(now);
+    // friendship threads between villagers who talk to each other
+    if (view !== 'grid') {
+      ctx.globalCompositeOperation = 'lighter';
+      for (const m of minds.values()) {
+        for (const [who, c] of Object.entries(m.stats.social)) {
+          const o = minds.get(who);
+          if (!o || o.index < m.index) continue;
+          const g = ctx.createLinearGradient(m.x, m.y, o.x, o.y);
+          const a = Math.min(0.35, 0.05 + c * 0.02);
+          g.addColorStop(0, m.color(70, a)); g.addColorStop(1, o.color(70, a));
+          ctx.strokeStyle = g; ctx.lineWidth = 0.8 + Math.log2(1 + c) * 0.6;
+          const mx = (m.x + o.x) / 2, my = (m.y + o.y) / 2;
+          ctx.beginPath(); ctx.moveTo(m.x, m.y); ctx.quadraticCurveTo(mx + (H / 2 - my) * 0.25, my + (mx - W / 2) * 0.1, o.x, o.y); ctx.stroke();
+        }
+      }
+      ctx.globalCompositeOperation = 'source-over';
+      for (const f of flights) {
+        const a = minds.get(f.from), b = minds.get(f.to);
+        if (!a || !b) continue;
+        const x = lerp(a.x, b.x, f.t), y = lerp(a.y, b.y, f.t) - Math.sin(f.t * Math.PI) * 40;
+        ctx.globalCompositeOperation = 'lighter';
+        glowDot(x, y, 3, a.color(85), 16);
+        ctx.globalCompositeOperation = 'source-over';
+      }
+    }
+  }
+  let flights = [];
+
+  // ------------------------------------------------------------------ loop
+  let last = performance.now();
+  let labelTick = 0;
+  const FRAME_MS = LOW_POWER ? 1000 / 30 - 2 : 0;
+  function frame(now) {
+    if (now - last < FRAME_MS) return requestAnimationFrame(frame);
+    const dt = Math.min(64, now - last); last = now;
+    flights = flights.filter((f) => (f.t += dt * 0.0005) < 1);
+    drawSky(now);
+    for (const m of minds.values()) { m.step(dt, now); m.draw(now); }
+    if (now - labelTick > (LOW_POWER ? 120 : 50)) {
+      labelTick = now;
+      for (const m of minds.values()) {
+        m.label.style.transform = `translate(${m.x}px, ${m.y + Math.max(m.R * 1.12, 30) + 4}px)`;
+      }
+    }
+    requestAnimationFrame(frame);
+  }
+
+  // ------------------------------------------------------------------ stream
+  const PHRASE = {
+    collect_block: 'gathered', craft: 'crafted', smelt: 'smelted', build_shelter: 'built', place_block: 'placed a block',
+    dig_block: 'dug', go_to: 'travelled', go_to_player: 'walked over', explore: 'explored', attack: 'fought', eat: 'ate',
+    sleep: 'went to bed', give_item: 'shared', use_chest: 'used a chest', follow: 'is following', equip: 'equipped',
+    set_home: 'claimed a home', go_home: 'went home', find_block: 'searched',
+  };
+  function who(name) {
+    const m = minds.get(name);
+    return `<b style="--c:${m ? m.color(76) : 'var(--moon)'}">${esc(name)}</b>`;
+  }
+  // Hide raw JSON results; keep the human-readable ones.
+  const tidy = (t) => (/^[{\[]/.test(String(t ?? '').trim()) ? '' : String(t ?? ''));
+  let nowTimer;
+  function showNow(m, text) {
+    const said = document.getElementById('now-said');
+    const whoEl = document.getElementById('now-who');
+    said.classList.add('fade');
+    clearTimeout(nowTimer);
+    nowTimer = setTimeout(() => {
+      whoEl.textContent = m.name;
+      whoEl.style.setProperty('--c', m.color(76));
+      said.textContent = text;
+      said.classList.remove('fade');
+    }, 500);
+  }
+  function addStream(html) {
+    const li = document.createElement('li');
+    li.innerHTML = html;
+    streamEl.appendChild(li);
+    while (streamEl.children.length > 5) streamEl.firstChild.remove();
+  }
+
+  // ------------------------------------------------------------------ events
+  function ensureMind(d) {
+    let m = minds.get(d.name);
+    if (!m) {
+      m = new Mind(d, order.length);
+      minds.set(d.name, m);
+      order.push(d.name);
+      layout();
+      m.x = m.tx; m.y = m.ty; m.R = 0;
+    } else m.update(d);
+    m.refreshLabel();
+    return m;
+  }
+
+  function handle(ev) {
+    const m = ev.bot ? minds.get(ev.bot) : null;
+    switch (ev.type) {
+      case 'snapshot':
+        for (const d of ev.bots) ensureMind(d);
+        for (const e of (ev.events ?? []).slice(-12)) describe(e);
+        if (!document.getElementById('now-said').textContent) {
+          const latest = ev.bots.filter((d) => d.last_plan)[0];
+          if (latest) showNow(minds.get(latest.name), latest.last_plan);
+        }
+        return;
+      case 'status':
+        for (const d of ev.bots) { const x = minds.get(d.name); if (x) { x.update({ ...d, stats: undefined, notes: undefined }); x.refreshLabel(); } }
+        if (ev.usage) usageNote = ev.usage.per_hour ? `${ev.usage.per_hour} thoughts in the last hour` : '';
+        setStatus(statusMode);
+        return;
+    }
+    if (m) react(m, ev);
+    describe(ev);
+  }
+
+  function react(m, ev) {
+    switch (ev.type) {
+      case 'act': m.onAct(ev.name); m.activity = PHRASE[ev.name] ?? ev.name; break;
+      case 'action': m.onResult(ev.name, ev.ok); break;
+      case 'thinking': m.thinking = ev.on; break;
+      case 'thought': m.last_plan = ev.text; m.onThought(); break;
+      case 'goal': m.goal = ev.text; m.rebuild(); m.fire('core', 'goal', 'hsla(45, 100%, 75%, 1)', 0.6); break;
+      case 'memory': m.notes.push(ev.text); m.rebuild(); break;
+      case 'forget': m.notes = m.notes.slice(0, ev.count); m.rebuild(); break;
+      case 'chat': m.stats.chats++; break;
+      case 'whisper':
+        m.stats.social[ev.to] = (m.stats.social[ev.to] ?? 0) + 1; m.rebuild();
+        if (minds.has(ev.to)) flights.push({ from: m.name, to: ev.to, t: 0 });
+        break;
+      case 'death': m.deathGlow = 1; m.stats.deaths++; break;
+      case 'hurt': m.deathGlow = Math.max(m.deathGlow, 0.35); break;
+      case 'online': m.online = true; break;
+      case 'offline': m.online = false; break;
+      case 'mode': m.mode = ev.mode; break;
+      case 'directive': m.directive = ev.text; m.flash = 1; break;
+    }
+    m.refreshLabel();
+  }
+
+  function describe(ev) {
+    const b = ev.bot;
+    switch (ev.type) {
+      case 'thought':
+        if (minds.has(b)) showNow(minds.get(b), ev.text);
+        return;
+      case 'action':
+        if (ev.source === 'manual') {
+          if (['observe', 'chat', 'whisper', 'find_block'].includes(ev.name)) return;
+          return addStream(`${who(b)} ${ev.ok ? esc(PHRASE[ev.name] ?? ev.name) : 'tried, but failed'} on your command. ${esc(tidy(ev.summary))}`);
+        }
+        if (!ev.ok) return addStream(`${who(b)} struggled: ${esc(tidy(ev.summary))}`);
+        if (['observe', 'find_block', 'equip', 'chat', 'whisper', 'stop'].includes(ev.name)) return;
+        return addStream(`${who(b)} ${PHRASE[ev.name] ?? ev.name}. ${esc(tidy(ev.summary))}`);
+      case 'chat': return addStream(`${who(b)} says <q>${esc(ev.text)}</q>`);
+      case 'whisper': return addStream(`${who(b)} whispers to ${minds.has(ev.to) ? who(ev.to) : esc(ev.to)}`);
+      case 'heard': return ev.ai ? undefined : addStream(`<b>${esc(ev.from)}</b> says <q>${esc(ev.text)}</q>`);
+      case 'goal': return addStream(`${who(b)} has a new goal: ${esc(ev.text)}`);
+      case 'memory': return addStream(`${who(b)} remembered <q>${esc(ev.text)}</q>`);
+      case 'board': return addStream(`${who(b)} pinned a note: <q>${esc(ev.text)}</q>`);
+      case 'directive': return addStream(`${esc(ev.from)} asked ${who(b)} to ${esc(ev.text)}`);
+      case 'directive-done': return addStream(`${who(b)} ${ev.ok ? 'finished the job' : 'gave up on the job'}: ${esc(ev.summary)}`);
+      case 'death': return addStream(`${who(b)} died near ${esc(ev.where)} and is respawning`);
+      case 'online': return addStream(`${who(b)} woke up in the world`);
+      case 'offline': return addStream(`${who(b)} left the world`);
+      case 'mode': return addStream(`${who(b)} is now ${esc(ev.mode)}`);
+    }
+  }
+
+  // ------------------------------------------------------------------ status
+  let statusMode = 'connecting';
+  let usageNote = '';
+  function setStatus(mode) {
+    statusMode = mode;
+    statusEl.className = `status ${mode === 'live' ? 'live' : mode === 'demo' ? 'demo' : mode === 'down' ? 'down' : ''}`;
+    statusText.textContent = {
+      live: `Live${usageNote ? `, ${usageNote}` : ''}`,
+      demo: W < 640 ? 'Demo minds' : 'Demo minds. Start the village with npm start to see the real ones',
+      down: 'Village not running. Retrying…',
+      connecting: 'Connecting…',
+    }[mode];
+  }
+
+  // ------------------------------------------------------------------ connection
+  let demoTimer = null;
+  function connect() {
+    if (FORCE_DEMO) return startDemo();
+    const url = `stream${TOKEN ? `?token=${encodeURIComponent(TOKEN)}` : ''}`;
+    const es = new EventSource(url);
+    let opened = false;
+    const fallback = setTimeout(() => { if (!opened && !minds.size) startDemo(); }, 5000);
+    es.onopen = () => { opened = true; clearTimeout(fallback); stopDemo(); setStatus('live'); };
+    es.onmessage = (e) => { try { handle(JSON.parse(e.data)); } catch (err) { console.error(err); } };
+    es.onerror = () => { if (!demoTimer) setStatus(minds.size ? 'down' : 'connecting'); };
+  }
+
+  // A pretend village, so the page is never empty (and for previewing without Minecraft).
+  function startDemo() {
+    if (demoTimer) return;
+    setStatus('demo');
+    const people = [
+      ['Alder', 'lumberjack'], ['Bram', 'miner'], ['Cora', 'farmer'], ['Dax', 'builder'], ['Elsie', 'explorer and cartographer'],
+      ['Finn', 'hunter'], ['Greta', 'blacksmith and crafter'], ['Hugo', 'guard'], ['Ivy', 'cook and gatherer'], ['Jasper', 'quartermaster'],
+    ];
+    const skills = ['collect_block', 'craft', 'explore', 'go_to', 'smelt', 'build_shelter', 'use_chest', 'attack', 'eat', 'give_item', 'place_block', 'sleep'];
+    const thoughts = [
+      'Night is coming, so I will head home and finish the roof before the zombies show up.',
+      'The birch grove to the east still has plenty of logs. I will bring twenty back to the chest.',
+      'Bram found iron near the river cave. I should craft him a better pickaxe.',
+      'Cora looked hungry earlier. I will cook the beef and leave some in the food chest.',
+      'Elsie pinned a note about a village to the north. Worth a visit tomorrow.',
+      'The wheat is almost ready. I will till two more rows while I wait.',
+    ];
+    people.forEach(([name, role], i) => {
+      const actions = {};
+      skills.slice(0, 3 + (i % 5)).forEach((s, k) => { actions[s] = { ok: 2 + ((i * 7 + k * 3) % 14), fail: (i + k) % 3 }; });
+      const social = {};
+      social[people[(i + 1) % 10][0]] = 2 + (i % 4);
+      if (i % 3 === 0) social[people[(i + 4) % 10][0]] = 3;
+      ensureMind({
+        name, role, mode: i === 7 ? 'directed' : 'autonomous', online: true, health: 14 + (i % 7), food: 10 + (i % 10),
+        activity: 'idle', goal: 'Help the village through its first week', last_plan: thoughts[i % thoughts.length],
+        notes: Array.from({ length: i % 4 + 1 }, (_, k) => `note ${k} of ${name}`),
+        stats: { actions, links: { [`${skills[0]}>${skills[1]}`]: 3 + i, [`${skills[2]}>${skills[0]}`]: 2 }, social, thoughts: 5 + i * 3, deaths: 0, chats: i },
+        personality: 'A demo villager.',
+      });
+    });
+    const pick = (a) => a[(Math.random() * a.length) | 0];
+    showNow(minds.get('Cora'), thoughts[5]);
+    demoTimer = setInterval(() => {
+      const m = pick([...minds.values()]);
+      const r = Math.random();
+      if (r < 0.45) {
+        const s = pick(skills);
+        handle({ type: 'act', bot: m.name, name: s, source: 'brain' });
+        setTimeout(() => handle({ type: 'action', bot: m.name, name: s, ok: Math.random() < 0.8, source: 'brain', summary: 'Done.' }), 1800 + Math.random() * 2500);
+      } else if (r < 0.65) {
+        handle({ type: 'thinking', bot: m.name, on: true });
+        setTimeout(() => { handle({ type: 'thinking', bot: m.name, on: false }); handle({ type: 'thought', bot: m.name, text: pick(thoughts) }); }, 2500);
+      } else if (r < 0.75) {
+        handle({ type: 'memory', bot: m.name, text: `Spotted ${pick(['iron ore', 'a cherry grove', 'a river crossing', 'sugar cane', 'a ravine'])} at ${(Math.random() * 400 - 200) | 0}, ${(Math.random() * 40 + 40) | 0}, ${(Math.random() * 400 - 200) | 0}` });
+      } else if (r < 0.85) {
+        const o = pick([...minds.values()].filter((x) => x !== m));
+        handle({ type: 'whisper', bot: m.name, to: o.name, text: 'hi' });
+      } else {
+        handle({ type: 'chat', bot: m.name, text: pick(['Morning all!', 'Anyone need torches?', 'Found some coal!', 'Heading out to explore.', 'Dinner is in the chest.']) });
+      }
+    }, 1400);
+  }
+  function stopDemo() {
+    if (!demoTimer) return;
+    clearInterval(demoTimer); demoTimer = null;
+    for (const m of minds.values()) m.label.remove();
+    minds.clear(); order.length = 0; streamEl.innerHTML = '';
+  }
+
+  // ------------------------------------------------------------------ full brain
+  function openBrain(m) {
+    const p = new URLSearchParams({ bot: m.name });
+    if (TOKEN) p.set('token', TOKEN);
+    if (demoTimer || FORCE_DEMO) p.set('demo', '');
+    location.href = `brain?${p.toString().replace(/=(&|$)/g, '$1')}`;
+  }
+  // clicking a glowing brain (not just its name) opens it too
+  canvas.addEventListener('click', (e) => {
+    let best = null, bd = Infinity;
+    for (const m of minds.values()) {
+      const d = Math.hypot(e.clientX - m.x, e.clientY - m.y);
+      if (d < Math.max(40, m.R * 1.1) && d < bd) { bd = d; best = m; }
+    }
+    if (best) openBrain(best);
+  });
+  canvas.addEventListener('pointermove', (e) => {
+    let over = false;
+    for (const m of minds.values()) if (Math.hypot(e.clientX - m.x, e.clientY - m.y) < Math.max(40, m.R * 1.1)) over = true;
+    canvas.style.cursor = over ? 'pointer' : '';
+  });
+
+  // ------------------------------------------------------------------ drawer
+  const drawer = document.getElementById('drawer');
+  const drawerBody = document.getElementById('drawer-body');
+  let drawerMind = null;
+  function openDrawer(m) {
+    drawerMind = m;
+    renderDrawer();
+    drawer.classList.add('open');
+    drawer.setAttribute('aria-hidden', 'false');
+    document.getElementById('drawer-close').focus();
+  }
+  function closeDrawer() {
+    drawer.classList.remove('open');
+    drawer.setAttribute('aria-hidden', 'true');
+    drawerMind?.label.focus();
+    drawerMind = null;
+  }
+  function renderDrawer() {
+    const m = drawerMind;
+    if (!m) return;
+    drawer.style.setProperty('--hue', m.color(76));
+    const skills = Object.entries(m.stats.actions).sort((a, b) => (b[1].ok + b[1].fail) - (a[1].ok + a[1].fail));
+    const friends = Object.entries(m.stats.social).sort((a, b) => b[1] - a[1]);
+    drawerBody.innerHTML = `
+      <h2>${esc(m.name)}</h2>
+      <p class="role">${esc(m.role ?? '')}, level ${m.level}, ${esc(m.mode ?? '')}</p>
+      <p>${esc(m.personality ?? '')}</p>
+      <h3>Goal</h3><p>${m.goal ? esc(m.goal) : '<span class="muted">No goal yet</span>'}</p>
+      ${m.directive ? `<h3>Job from you</h3><p>${esc(m.directive)}</p>` : ''}
+      <h3>Latest thought</h3><p>${m.last_plan ? esc(m.last_plan) : '<span class="muted">Hasn’t thought yet</span>'}</p>
+      <h3>Skills</h3>
+      ${skills.length ? skills.map(([k, v]) => `<div class="skill-row"><span>${esc(k.replace(/_/g, ' '))}</span><span>${v.ok} done${v.fail ? `, ${v.fail} failed` : ''}</span></div>`).join('') : '<p class="muted">Nothing tried yet</p>'}
+      <h3>Memories</h3>
+      ${m.notes.length ? `<ul>${m.notes.map((n) => `<li>${esc(n)}</li>`).join('')}</ul>` : '<p class="muted">Nothing remembered yet</p>'}
+      <h3>Friends</h3>
+      ${friends.length ? `<ul>${friends.map(([k, v]) => `<li>${esc(k)}, ${v} conversations</li>`).join('')}</ul>` : '<p class="muted">No one yet</p>'}
+      <h3>Life so far</h3>
+      <p>${m.stats.thoughts} thoughts, ${m.stats.chats} things said, ${m.stats.deaths} deaths</p>`;
+  }
+  document.getElementById('drawer-close').addEventListener('click', closeDrawer);
+  setInterval(() => drawerMind && renderDrawer(), 3000);
+
+  // ------------------------------------------------------------------ controls
+  const viewBtn = document.getElementById('view-btn');
+  const sleepBtn = document.getElementById('sleep-btn');
+  function toggleView() {
+    view = view === 'grid' ? 'constellation' : 'grid';
+    try { localStorage.setItem('vm-view', view); } catch {}
+    viewBtn.setAttribute('aria-pressed', String(view === 'grid'));
+    layout();
+  }
+  let wakeLock = null;
+  async function lockScreen(on) {
+    try {
+      if (on && 'wakeLock' in navigator) wakeLock = await navigator.wakeLock.request('screen');
+      else if (!on && wakeLock) { await wakeLock.release(); wakeLock = null; }
+    } catch { /* not supported or not allowed */ }
+  }
+  function toggleSleep(force) {
+    const on = force ?? !document.body.classList.contains('sleep');
+    document.body.classList.toggle('sleep', on);
+    sleepBtn.setAttribute('aria-pressed', String(on));
+    sleepBtn.textContent = on ? 'Wake up' : 'Sleep mode';
+    lockScreen(on);
+    if (on && document.documentElement.requestFullscreen && !document.fullscreenElement) document.documentElement.requestFullscreen().catch(() => {});
+    if (!on && document.fullscreenElement) document.exitFullscreen().catch(() => {});
+  }
+  viewBtn.addEventListener('click', toggleView);
+  sleepBtn.addEventListener('click', () => toggleSleep());
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && document.body.classList.contains('sleep')) lockScreen(true); });
+  document.addEventListener('keydown', (e) => {
+    if (e.target.closest?.('input, textarea')) return;
+    if (e.key === 'Escape') { if (drawer.classList.contains('open')) closeDrawer(); else if (document.body.classList.contains('sleep')) toggleSleep(false); }
+    if (e.key === 'g' || e.key === 'G') toggleView();
+    if (e.key === 's' || e.key === 'S') toggleSleep();
+  });
+  // In sleep mode, moving the mouse briefly shows the controls again.
+  let peekTimer;
+  document.addEventListener('pointermove', () => {
+    if (!document.body.classList.contains('sleep')) return;
+    document.body.classList.add('peek');
+    clearTimeout(peekTimer);
+    peekTimer = setTimeout(() => document.body.classList.remove('peek'), 2500);
+  });
+  if (params.has('sleep')) toggleSleep(true);
+  if (params.get('view') === 'grid' && view !== 'grid') toggleView();
+  viewBtn.setAttribute('aria-pressed', String(view === 'grid'));
+
+  addEventListener('resize', resize);
+  resize();
+  connect();
+  requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>

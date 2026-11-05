@@ -1,0 +1,7 @@
+# Downloaded designs belong to their creators: don't upload them. Only share openly licensed ones listed below.
+*
+!.gitignore
+!README.md
+!credits.json
+!smallhouse1.schem
+!LICENSE-mineflayer-builder.txt

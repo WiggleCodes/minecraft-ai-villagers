@@ -1,0 +1,30 @@
+# Optional: a local Paper server set up for AI villagers.
+# Run:  docker compose up -d     (first start downloads the server, takes a minute)
+# Then: npm start
+services:
+  minecraft:
+    image: itzg/minecraft-server:latest
+    container_name: wigglys-ai-villagers-server
+    ports:
+      - "25565:25565"
+    environment:
+      EULA: "TRUE"
+      TYPE: "PAPER"
+      VERSION: "1.21.11"
+      MEMORY: "4G"
+      # Bots log in without Microsoft accounts, so the server must be in offline mode.
+      # Keep this server on your LAN only — don't port-forward it.
+      ONLINE_MODE: "FALSE"
+      MAX_PLAYERS: "25"
+      DIFFICULTY: "easy"
+      MODE: "survival"
+      # 0 so villagers can build/mine near spawn
+      SPAWN_PROTECTION: "0"
+      VIEW_DISTANCE: "8"
+      SIMULATION_DISTANCE: "8"
+      MOTD: "AI Village"
+      ENABLE_RCON: "true"
+      RCON_PASSWORD: "change-me"
+    volumes:
+      - ./server-data:/data
+    restart: unless-stopped
