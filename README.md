@@ -23,10 +23,40 @@ You can leave them to it, give them jobs in chat, watch their minds in a live **
  MCP server (stdio)  ◄── Claude Desktop / Claude Code
 ```
 
+## Quick start
+
+The fastest way to try it is a singleplayer world with 7 villagers. You need Node.js 20+, Minecraft Java Edition and a free AI key from [build.nvidia.com](https://build.nvidia.com).
+
+```bash
+npm install
+cp .env.example .env       # Windows: copy .env.example .env
+```
+
+Fill in these lines in `.env`:
+
+```ini
+OPENAI_API_KEY=your-key
+OWNERS=YourMinecraftName
+MAX_BOTS=7
+```
+
+In Minecraft, open a world, press Esc and choose *Open to LAN*. It shows a port number: set `MC_PORT=` to that number in `.env`. Then run:
+
+```bash
+npm start
+```
+
+The villagers join a few seconds apart. Open **http://localhost:3005** to watch their minds, and try `@all meet me at the village centre` in chat.
+
+> **Set `MAX_BOTS`.** `config/bots.json` lists 200 villagers, and if `MAX_BOTS` is empty, all of them try to join. A LAN world only has room for 7.
+
+See [Setup](#setup) for the full details, including running a server and connecting Claude.
+
 ## What makes them clever
 
 **They run themselves, and use the AI only for new things.**
 - **Autopilot:** built-in know-how for every role (lumberjacks chop and make planks, miners quarry and mine visible ore, builders build houses on plots round the village square, masons build the town wall, hunters hunt, blacksmiths smelt and forge, guards patrol and defend, shepherds make beds...), plus basics for everyone: tools, a weapon, food, storing a full inventory.
+- **Planner:** works out how to get any item with no AI, searching back through recipes, smelting, mining and hunting (iron pickaxe ← iron ingot ← raw iron ← stone pickaxe...) and returning the first step that can be done now. The AI can use it too, through `figure_out`.
 - **Skills memory** (`data/skills.json`): how every step works out, shared by everyone in the same role. A step that fails three times in a row rests for 15–30 minutes, so the village trains itself and stops repeating mistakes.
 - **The AI is asked only when it's needed:** a job from you, someone talking to them, a request, a death, the village moving, being stuck with nothing sensible to do, and a goal review every `AI_REVIEW_MINUTES` (20 by default). Everything the AI does that works is learned as a shared habit, so the next villager in that role can do it without asking.
 
@@ -34,7 +64,9 @@ You can leave them to it, give them jobs in chat, watch their minds in a live **
 - **Lessons from mistakes.** When something fails for a clear reason (no pickaxe for stone, a missing ingredient, no bed nearby), it becomes a lesson that *every* villager sees, so nobody repeats it.
 - **Shared discoveries.** Trees, ores, water, chests and other useful places found by anyone go on one shared map, shown to each villager nearest-first.
 - **Lessons from death.** What killed a villager (mobs, lava, drowning, falling…) becomes a survival lesson for the whole village.
-- **Personal memory.** Each villager keeps its own notes, goal and home, and sees its last 12 actions so it notices when it's going round in circles.
+- **Problem solving.** When an action fails, a villager recognises the problem, tries a known fix and retries. Fixes that work are saved to `data/solutions.json` for everyone, and a problem that keeps coming back with no known fix gets an AI turn to work out the cause.
+- **The village library** (`data/library/`). A list of things worth doing, which starts with a set of ideas and grows as villagers add their own. A villager with nothing better to do can pick one up. To add your own, drop a `.txt`, `.md` or `.json` file into `data/library/import/` (a README there explains the format). The library survives world resets.
+- **Personal memory.** Each villager keeps its own notes, goal and home, and sees its last 12 actions so it notices when it's going round in circles. It can search older memories with `recall`.
 - **Habits that save AI credits.** Every successful action the AI chooses is remembered in `data/habits.json` as "in this role, after doing X, I do Y". Once a step has worked twice, villagers replay their habits (up to 4 steps at a time) **without calling the AI**. The AI still gets every fourth turn (`HABIT_REPEATS`), plus anything new: chat, danger, low health, jobs, or a habit that fails. If the AI service refuses (out of credits), villagers keep working on their habits instead of standing still.
 
 **They plan and work as a team.**
@@ -61,9 +93,15 @@ You can leave them to it, give them jobs in chat, watch their minds in a live **
 
 **Reflexes run without the AI.** With no AI calls, they eat when hungry, fight back when hit, flee when health is low, put on better armour, **sleep at night** when a bed is within 32 blocks (setting their respawn point, and a sleeping villager uses no AI), put a carried bed down at the village, pick up items lying nearby, go back for what they dropped when they died, respawn, and reconnect if kicked.
 
+**They run a small society.** The village keeps its own economy and laws, saved in `data/state.json`. You can see the current state at `http://localhost:3005/society`.
+- **Coins:** each villager starts with 20 and earns wages for useful work, including 10 for finishing a task. They can `pay` each other, or `buy` items at fair prices from whoever has spare. Coins are a ledger kept by the village, not Minecraft items.
+- **Trading with real villagers:** `trade_villager` sells surplus to Minecraft villagers and wandering traders for emeralds, and buys what they offer.
+- **Laws:** any villager can propose one, and it passes with at least 3 yes votes and more yes than no within 30 minutes. The village enforces chest withdrawal limits, attacks on villagers, breaking buildings and a night curfew automatically. Any other law is a custom law, which needs reports from two different villagers to convict.
+- **Punishment:** breaking a law costs a fine (10 coins unless the law sets another amount, up to 100). A villager who can't pay, or who offends twice within an hour, is also jailed for 5 minutes per offence, up to 15. A third offence in an hour brings a 15-minute arrest warrant, and anyone may attack the offender until they're in jail.
+
 ## The villagers
 
-The fellowship, each with a role, a personality and long-term ambitions:
+There are **200 villagers** in [config/bots.json](config/bots.json), across 15 roles, each with a personality and long-term goals. `MAX_BOTS` starts the first N in the list, and these are the first 15:
 
 | Name | Role | | Name | Role |
 |---|---|---|---|---|
@@ -76,7 +114,9 @@ The fellowship, each with a role, a personality and long-term ambitions:
 | Celebrimbor | blacksmith and crafter | | Pippin | courier |
 | Boromir | guard | | | |
 
-Edit [config/bots.json](config/bots.json) to rename them, change their personalities and goals, add or remove villagers, or pick a different `"coordinator"`. Names must be 3–16 letters, digits or `_`. `MAX_BOTS` in `.env` limits how many join (the first N in the list).
+The left column reads top to bottom, then the right, so `MAX_BOTS=7` gives you Treebeard to Celebrimbor.
+
+Edit [config/bots.json](config/bots.json) to rename them, change their personalities and goals, add or remove villagers, or pick a different `"coordinator"`. Add `"enabled": false` to a villager to skip it without deleting it. Names must be 3–16 letters, digits or `_`. If the coordinator isn't among the villagers running, the first villager takes over.
 
 ## Watch their minds (brain dashboard)
 
@@ -110,16 +150,29 @@ Add `?demo` to preview it without Minecraft, e.g. `http://localhost:3005/brain?b
    npm install
    cp .env.example .env       # Windows: copy .env.example .env
    ```
-   Put your Minecraft username in `OWNERS=` so only you can give orders.
+   Put your Minecraft username in `OWNERS=` so only you can give orders, and set `MAX_BOTS=` to how many villagers you want (see step 3 for limits). Left empty, all 200 try to join.
 
 2. **Choose the villagers' brain** (in `.env`):
    - **Free option, NVIDIA:** get a free key at [build.nvidia.com](https://build.nvidia.com) and put it in `OPENAI_API_KEY`. `.env.example` is already set up for NVIDIA (`OPENAI_BASE_URL=https://integrate.api.nvidia.com/v1`, `MODEL=minimaxai/minimax-m3.1-flash`, `MAX_LLM_CALLS_PER_MINUTE=4`). The free tier is rate-limited (about 4 villager decisions a minute), so learned habits do much of the work. For any other OpenAI-compatible service (OpenRouter, Groq...), change `OPENAI_BASE_URL` and `MODEL` to match.
-   - **More capacity:** list several keys in `OPENAI_API_KEY` (comma separated) and/or add other services as `EXTRA_AI_1=baseURL|apiKey|model`, `EXTRA_AI_2=...`. The villagers take turns across all of them, a rate-limited one sits out for 30 seconds, and the per-minute limit scales with the pool. Keys from the same account usually share one limit; mixing providers gives genuinely separate allowances.
+   - **More free capacity:** paste a key into any of these and that service joins in with no other setup. Each key is tested at start-up: bad keys are skipped, a retired model is swapped for a current one, and each service is paced by its own free limit.
+
+     | Setting | Service |
+     |---|---|
+     | `GROQ_API_KEY` | [Groq](https://console.groq.com/keys) |
+     | `GEMINI_API_KEY` | [Google Gemini](https://aistudio.google.com/apikey) |
+     | `OPENROUTER_API_KEY` | [OpenRouter](https://openrouter.ai/settings/keys), using its free models |
+     | `MISTRAL_API_KEY` | [Mistral](https://console.mistral.ai/api-keys) |
+     | `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` | [Cloudflare Workers AI](https://dash.cloudflare.com/profile/api-tokens) |
+     | `CEREBRAS_API_KEY` | [Cerebras](https://cloud.cerebras.ai) |
+     | `COHERE_API_KEY` | [Cohere](https://dashboard.cohere.com/api-keys), a small trial allowance |
+
+     Use `<SERVICE>_MODEL` to choose a different model, for example `GROQ_MODEL=...`.
+   - **Other services:** list several keys in `OPENAI_API_KEY` (comma separated) and/or add any OpenAI-compatible service as `EXTRA_AI_1=baseURL|apiKey|model`, `EXTRA_AI_2=...`. The villagers take turns across everything you've set up. A rate-limited service sits out for a while, and the per-minute limit scales with the pool. Keys from the same account usually share one limit; mixing providers gives genuinely separate allowances.
    - **No key at all:** villagers run in manual mode and only move when you control them through the MCP tools.
 
 3. **Open a world for them.** Either:
-   - **A singleplayer world:** press Esc, then *Open to LAN*. Put the port it shows in `MC_PORT=` (it changes each time you open the world). A LAN world holds 8 players, so that's you plus 7 villagers.
-   - **A server:** `docker compose up -d` starts a ready-made Paper server, or use your own with `online-mode=false`, `spawn-protection=0` and enough `max-players`.
+   - **A singleplayer world:** press Esc, then *Open to LAN*. Put the port it shows in `MC_PORT=` (it changes each time you open the world). A LAN world holds 8 players, so that's you plus 7 villagers: set `MAX_BOTS=7`.
+   - **A server:** `docker compose up -d` starts a ready-made Paper 1.21.11 server on port 25565, with 4 GB of memory and 25 player slots (so `MAX_BOTS=24` leaves room for you). Starting it accepts the [Minecraft EULA](https://www.minecraft.net/eula), and its world is saved in `server-data/`. Or use your own server with `online-mode=false`, `spawn-protection=0` and enough `max-players`.
 
    > The villagers need offline mode because they don't have Microsoft accounts. Keep the server on your own network; don't port-forward it. You can still join with your normal launcher.
 
@@ -128,7 +181,7 @@ Add `?demo` to preview it without Minecraft, e.g. `http://localhost:3005/brain?b
    npm start            # villagers with brains
    npm run manual       # brains off: MCP control only
    ```
-   Villagers join a few seconds apart. Their thoughts, lessons, plans and tasks are logged in the console, a colour per villager.
+   Villagers join a few seconds apart. Their thoughts, lessons, plans and tasks are logged in the console, a colour per villager. Press `Ctrl+C` to stop; the village saves its state and picks up where it left off next time.
 
 5. **Connect Claude (optional).**
    - **Claude Desktop:** add this to `claude_desktop_config.json` (Windows: `%APPDATA%\Claude\claude_desktop_config.json`) and restart Claude Desktop:
@@ -180,28 +233,60 @@ Using an `mc_*` tool on a villager takes it over straight away and pauses its br
 | `set_mode` | autonomous / directed / manual, per villager or `all` |
 | `read_board`, `post_board` | The village notice board |
 | `get_usage` | AI calls and tokens so far |
-| `mc_observe`, `mc_go_to`, `mc_go_to_player`, `mc_follow`, `mc_stop`, `mc_explore`, `mc_find_block`, `mc_collect_block`, `mc_dig_block`, `mc_place_block`, `mc_build_shelter`, `mc_build_house`, `mc_build_wall`, `mc_build_schematic`, `mc_list_schematics`, `mc_build_farm`, `mc_harvest_crops`, `mc_craft`, `mc_smelt`, `mc_use_chest`, `mc_equip`, `mc_eat`, `mc_attack`, `mc_sleep`, `mc_give_item`, `mc_chat`, `mc_whisper`, `mc_recover_items`, `mc_set_home`, `mc_go_home` | Direct control of one villager |
+| `mc_observe`, `mc_go_to`, `mc_go_to_player`, `mc_follow`, `mc_stop`, `mc_explore`, `mc_find_block`, `mc_collect_block`, `mc_dig_block`, `mc_place_block`, `mc_clean_up`, `mc_build_shelter`, `mc_build_house`, `mc_build_wall`, `mc_build_schematic`, `mc_list_schematics`, `mc_build_farm`, `mc_harvest_crops`, `mc_craft`, `mc_smelt`, `mc_use_chest`, `mc_search_chests`, `mc_trade_villager`, `mc_equip`, `mc_eat`, `mc_attack`, `mc_sleep`, `mc_give_item`, `mc_chat`, `mc_whisper`, `mc_recover_items`, `mc_set_home`, `mc_go_home` | Direct control of one villager |
 
 Things to ask Claude: *"Who's online and what are they up to?"*, *"Get Gimli to mine 30 cobblestone and put it in the village chest"*, *"Put everyone in directed mode"*, *"Take control of Legolas and walk him to 120, 64, -40"*.
+
+## Control API
+
+The MCP server is a thin bridge to a local HTTP API, which you can also call from scripts or `curl` while the village is running. If `API_TOKEN` is set, send `Authorization: Bearer <token>` or add `?token=<token>`.
+
+| Request | Use |
+|---|---|
+| `GET /health` | Check the village is running |
+| `GET /bots`, `GET /bots/<name>`, `GET /bots/<name>/log` | Villager status, detail and action history |
+| `POST /bots/<name>/directive` `{"text": "..."}` | Give a job |
+| `POST /bots/<name>/request` `{"text": "..."}` | Add a "when you can" request (`all` for anyone) |
+| `POST /bots/<name>/mode` `{"mode": "..."}` | Change mode (`all` for everyone) |
+| `POST /bots/<name>/action` `{"action": "...", "args": {}}` | Run one action directly |
+| `POST /broadcast` `{"text": "..."}` | Give every villager a job |
+| `GET /board`, `POST /board` `{"text": "..."}` | Read or post to the notice board |
+| `GET /society` | Coins, laws, crimes, jail and warrants |
+| `GET /library` | The village library |
+| `GET /actions` | Every action and its inputs |
+| `GET /usage` | AI usage and event loop lag |
 
 ## Settings (`.env`)
 
 | Setting | Default | What it does |
 |---|---|---|
+| `MC_HOST` / `MC_PORT` | `127.0.0.1` / `25565` | The Minecraft world or server to join |
+| `MC_VERSION` | auto-detect | Force a Minecraft version |
+| `OWNERS` | anyone | Minecraft usernames allowed to give orders, comma separated |
 | `MODEL` | `minimaxai/minimax-m3.1-flash` | The AI model the villagers think with |
 | `TICK_SECONDS` | `45` | How often an idle villager thinks. Lower is livelier but uses more AI |
 | `MAX_STEPS_PER_TICK` | `6` | How many actions in a row per thought |
 | `MAX_CONCURRENT_LLM` | `3` | How many villagers can think at the same moment |
 | `MAX_LLM_CALLS_PER_HOUR` | `600` | Hard cap on AI calls per hour across the village (`0` = no cap) |
+| `MAX_LLM_CALLS_PER_MINUTE` | `4` in `.env.example` | Calls per minute per key or service without built-in limits; scales with the pool |
 | `AI_REVIEW_MINUTES` | `20` | How often each villager has the AI review its goals when nothing new is happening |
 | `VIEW_DISTANCE` | `4` | Chunks loaded around each villager; small keeps memory low with many villagers |
 | `HABIT_REPEATS` | `3` | Habit turns (no AI) allowed in a row before the AI thinks again. `0` = always use the AI |
-| `MAX_BOTS` | all | Only start the first N villagers |
+| `MAX_BOTS` | all 200 | Only start the first N villagers |
+| `SHARDS` | `1` | Villager processes to run, one per CPU core you want to use. Raise it if you run dozens of villagers and they walk jerkily |
 | `DEFAULT_MODE` | `autonomous` | Starting mode for every villager |
+| `MANUAL_HOLD_SECONDS` | `120` | How long a villager's brain pauses after you control it with an `mc_*` tool |
 | `JOIN_DELAY_MS` | `5000` | Gap between villagers joining |
+| `CHAT_COOLDOWN_MS` | `2500` | Minimum gap between a villager's chat messages |
 | `API_HOST` / `API_PORT` / `API_TOKEN` | `127.0.0.1` / `3005` / none | Where the dashboard and control API listen, and their password |
+| `BOTS_CONFIG` / `DATA_FILE` | `config/bots.json` / `data/state.json` | Use a different villager list or save file |
+| `VILLAGE_API_URL` | `http://127.0.0.1:<API_PORT>` | MCP server only: where to find the village, if it's on another machine |
+
+`AI_REVIEW_MINUTES`, `VIEW_DISTANCE`, `SHARDS`, `CHAT_COOLDOWN_MS`, `BOTS_CONFIG`, `DATA_FILE` and `VILLAGE_API_URL` aren't in `.env.example`; add them to `.env` if you want to change them.
 
 The runner logs AI usage every 10 minutes, and `get_usage` shows it on demand. Tool definitions and personas are prompt-cached to keep costs down.
+
+**Running a lot of villagers?** Every villager is a full Minecraft connection, so large villages need a server with enough `max-players`, plenty of memory and CPU, and `SHARDS` set above 1. `GET /usage` shows `loop_lag_ms`: if that stays high, the program is overloaded. Start small and build up.
 
 ## Adding new abilities
 
@@ -217,18 +302,30 @@ Add both, and the action appears automatically as a brain tool and as an `mc_<na
 ```
 config/bots.json        villagers, coordinator, owners, server address
 src/runner.js           starts everything
+src/config.js           reads .env and config/bots.json
+src/village.js          the villagers in this process and how the API reaches them
+src/cluster/            spreads villagers over several processes (SHARDS)
 src/bot/agentBot.js     connection, reflexes, chat, death memory
 src/bot/actions.js      action handlers
 src/bot/crafting.js     smart crafting (makes in-between ingredients)
 src/bot/building.js     blueprint builders: houses, walls, schematics, farms, harvesting
 schematics/             designs for build_schematic (see schematics/README.md for credits)
 src/bot/util.js         helpers, including a fast block search
+src/bot/pathBudget.js   keeps pathfinding cheap with dozens of villagers
 src/bot/observe.js      what a villager "sees"
 src/agent/brain.js      the decision loop: briefing, planning, tasks, teamwork
 src/agent/prompts.js    shared rules, personas, brain-only tools
 src/agent/lessons.js    turns failures, deaths and finds into shared learning
 src/agent/autopilot.js  built-in role know-how that runs without the AI
+src/agent/planner.js    works out how to get any item, with no AI
+src/agent/troubleshoot.js  recognises problems and applies known fixes
+src/agent/society.js    coins, trading, laws, crime and jail
+src/agent/libraryStarter.js  the ideas the village library starts with
 src/agent/limiter.js    caps on how much AI the village uses
+src/agent/providers.js  built-in free AI services and start-up key testing
+src/agent/aiPool.js     shares requests across several AI services
+src/agent/compact.js    smaller requests for services with tight token limits
+src/agent/openaiClient.js  client for OpenAI-compatible services
 src/store.js            saved state: memory, plan, tasks, lessons, discoveries
 src/api.js              control API and dashboard stream
 src/feed.js             live event stream and experience stats
@@ -236,16 +333,24 @@ src/web/index.html      the brain dashboard (all villagers)
 src/web/brain.html      the full 3D brain for one villager
 src/mcp/server.js       MCP server (stdio)
 data/state.json         everything the village remembers (created when it runs)
+data/habits.json        learned routines
+data/skills.json        how each autopilot step works out, per role
+data/solutions.json     fixes that worked
+data/library/           the village library, and import/ for your own ideas
 ```
+
+Delete the `data/` folder to start a village from scratch. It's kept out of your GitHub upload, along with `.env` and `server-data/`.
 
 ## Troubleshooting
 
-- **"Server full" and villagers keep leaving and rejoining**: an Open to LAN world only holds 8 players (you plus 7 villagers). Set `MAX_BOTS=7` or use a server with more `max-players`.
+- **"Server full" and villagers keep leaving and rejoining**: an Open to LAN world only holds 8 players (you plus 7 villagers), and all 200 villagers try to join if `MAX_BOTS` is empty. Set `MAX_BOTS=7` or use a server with more `max-players`.
+- **Villagers walk jerkily or everything lags**: too many villagers for one process. Lower `MAX_BOTS` or raise `SHARDS`, and check `loop_lag_ms` at `http://localhost:3005/usage`.
 - **Villagers can't connect after you reopen your world**: Open to LAN picks a new port each time. Update `MC_PORT`.
 - **"No data available for version …"**: the bot library supports Minecraft up to 1.21.11 and 26.1. Use one of those versions.
 - **"You are not whitelisted" / "Failed to verify username"**: the server isn't in offline mode, or it has a whitelist.
 - **Villagers can't break blocks near spawn**: set `spawn-protection=0`.
 - **Villagers stop thinking**: your AI quota or `MAX_LLM_CALLS_PER_HOUR` may be used up. The console log says which.
+- **An AI service is "left out" at start-up**: its key or model was rejected. The console log gives the reason, and the other services carry on.
 - **MCP says the village isn't running**: run `npm start` first; the MCP server only connects to it.
 
 ## Licence
